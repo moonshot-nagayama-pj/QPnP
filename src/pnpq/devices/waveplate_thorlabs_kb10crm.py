@@ -48,7 +48,6 @@ class Waveplate:
 
     def rotate(self, degree):
         if self.conn.is_open:
-
             if degree > 360 or degree < 0:
                 raise Exception("Invalid Rotation Parameter")
 
