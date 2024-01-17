@@ -1,6 +1,6 @@
-from serial import Serial
+import serial
 import time
-
+from serial import Serial
 
 class Waveplate:
     conn: Serial
@@ -12,9 +12,27 @@ class Waveplate:
         self, serial_port: str = None, serial_number: str = None, config_file=None
     ):
         self.conn = Serial()
+        self.conn.baudrate = 115200
+        self.conn.bytesize = 8
+        self.conn.stopbits = 1
+        self.conn.parity = 'N'
+        self.conn.rtscts = 1
+
+        self.device_sn = serial_number
         self.port = serial_port
         self.conn.port = self.port
         self.resolution = 136533
+
+        find_Port = False
+        if self.device_sn is not None:
+            available_Ports = serial.tools.list_ports.comports()
+            for ports in available_Ports:
+                if (ports.serial_number ==  self.device_sn):
+                    self.conn.port = ports.device
+                    find_Port = True
+                    break
+            if find_Port == False:
+                raise Exception("Can not find Rotator WavePlate by serial_number (FTDI_SN)")
 
     def connect(self):
         self.conn.open()

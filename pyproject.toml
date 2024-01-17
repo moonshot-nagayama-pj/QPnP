@@ -1,7 +1,7 @@
 [project]
 name = "pnpq"
 version = "0.1.0"
-description = "Add your description here"
+description = "PnPQ is a python library package for controlling optical devices in quantum networks"
 authors = [
     { name = "Amin Taherkhani", email = "amin@sfc.wide.ad.jp" }
 ]
