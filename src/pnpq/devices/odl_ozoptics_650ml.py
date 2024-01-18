@@ -13,7 +13,10 @@ class OdlOzOptics:
 
     def connect(self):
         if self.conn.is_open == 0:
-            self.conn.open()
+            try:
+                self.conn.open()
+            except Exception as err:
+                raise Exception("Connection failed: " + str(err))
 
     def move():
         pass
