@@ -10,13 +10,13 @@ wp.connect()
 print(Waveplate())
 
 print(Switch())
-sw = Switch
+sw = Switch()
 
-print(OdlThorlabs)
+print(OdlThorlabs())
 odl = OdlThorlabs()
 odl.connect()
 
 print(OdlOzOptics)
-oz = OdlOzOptics
+oz = OdlOzOptics()
 oz.connect()
 
