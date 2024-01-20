@@ -65,6 +65,7 @@ class Waveplate:
             raise Exception("Homing Failed: Can not connect to the device!")
 
     def rotate(self, degree):
+        #Relatibve Rotation
         if self.conn.is_open:
             if degree > 360 or degree < 0:
                 raise Exception("Invalid Rotation Parameter")
@@ -75,6 +76,31 @@ class Waveplate:
             time.sleep(degree / 10)
         else:
             raise Exception("Moving Failed: Can not connect to the device")
+
+    def rotate_relative(self, degree):
+        if self.conn.is_open:
+            if degree > 360 or degree < 0:
+                raise Exception("Invalid Rotation Parameter")
+
+            msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+            msg = msg + (degree * self.resolution).to_bytes(4, byteorder="little")
+            self.conn.write(msg)
+            time.sleep(degree / 10)
+        else:
+            raise Exception("Moving Failed: Can not connect to the device")
+
+    def rotate_absolute(self, degree):
+        if self.conn.is_open:
+            if degree > 360 or degree < 0:
+                raise Exception("Invalid Rotation Parameter")
+
+            msg = b'\x53\x04\x06\x00\xb2\x01\x00\x00'
+            msg = msg + (degree * self.resolution).to_bytes(4, byteorder="little")
+            self.conn.write(msg)
+            time.sleep(degree / 10)
+        else:
+            raise Exception("Moving Failed: Can not connect to the device")
+
 
     def __repr__(self) -> str:
         return "Waveplate<Tholabs KB10CRM>"
