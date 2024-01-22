@@ -39,9 +39,12 @@ class OdlThorlabs:
         if self.conn.is_open:
             raise Exception("The connection is already open!")
         else:
-            self.conn.open()
-            #Enable Channel ID (0)
-            self.conn.write(b'\x10\x02\x01\x01\x50\x01')
+            try:
+                self.conn.open()
+                #Enable Channel ID (0)
+                self.conn.write(b'\x10\x02\x01\x01\x50\x01')
+            except Exception as e:
+                raise Exception("Connection failed: " + str(e))
 
 
     def identify(self):
