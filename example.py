@@ -6,7 +6,6 @@ from pnpq import OdlOzOptics
 print("hello world")
 wp = Waveplate(serial_number='00AAABBB')
 wp.connect()
-
 print(Waveplate())
 
 print(Switch())
@@ -17,6 +16,6 @@ odl = OdlThorlabs()
 odl.connect()
 
 print(OdlOzOptics)
-oz = OdlOzOptics()
+oz = OdlOzOptics(serial_number='CKBEe12CJ06')
 oz.connect()
 
