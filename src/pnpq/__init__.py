@@ -6,7 +6,7 @@
 __version__ = "0.0.1"
 from .devices import *
 
-__all__ = ["pnpq", "Waveplate", "Switch"]
+__all__ = ["pnpq", "Waveplate", "Switch", "OpticalDelayLine"]
 
 
 class pnpq:

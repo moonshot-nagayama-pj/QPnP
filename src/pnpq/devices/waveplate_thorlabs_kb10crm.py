@@ -2,6 +2,7 @@ import serial
 import time
 from serial import Serial
 
+
 class Waveplate:
     conn: Serial
     serial_number: str
@@ -15,7 +16,7 @@ class Waveplate:
         self.conn.baudrate = 115200
         self.conn.bytesize = 8
         self.conn.stopbits = 1
-        self.conn.parity = 'N'
+        self.conn.parity = "N"
         self.conn.rtscts = 1
 
         self.device_sn = serial_number
@@ -27,12 +28,14 @@ class Waveplate:
         if self.device_sn is not None:
             available_Ports = serial.tools.list_ports.comports()
             for ports in available_Ports:
-                if (ports.serial_number ==  self.device_sn):
+                if ports.serial_number == self.device_sn:
                     self.conn.port = ports.device
                     find_Port = True
                     break
             if find_Port == False:
-                raise Exception("Can not find Rotator WavePlate by serial_number (FTDI_SN)")
+                raise Exception(
+                    "Can not find Rotator WavePlate by serial_number (FTDI_SN)"
+                )
 
     def connect(self):
         self.conn.open()
@@ -65,7 +68,7 @@ class Waveplate:
             raise Exception("Homing Failed: Can not connect to the device!")
 
     def rotate(self, degree):
-        #Relatibve Rotation
+        # Relatibve Rotation
         if self.conn.is_open:
             if degree > 360 or degree < 0:
                 raise Exception("Invalid Rotation Parameter")
@@ -94,13 +97,12 @@ class Waveplate:
             if degree > 360 or degree < 0:
                 raise Exception("Invalid Rotation Parameter")
 
-            msg = b'\x53\x04\x06\x00\xb2\x01\x00\x00'
+            msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
             msg = msg + (degree * self.resolution).to_bytes(4, byteorder="little")
             self.conn.write(msg)
             time.sleep(degree / 10)
         else:
             raise Exception("Moving Failed: Can not connect to the device")
-
 
     def __repr__(self) -> str:
         return "Waveplate<Tholabs KB10CRM>"
