@@ -36,6 +36,7 @@ class OpticalDelayLine:
         for ports in available_ports:
             if ports.serial_number == self.device_sn or ports.device == self.port:
                 self.conn.port = ports.device
+                break
 
         if self.conn.port is None:
             raise RuntimeError("Can not find ODL by serial_number (FTDI_SN) or port!")

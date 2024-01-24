@@ -35,13 +35,12 @@ class OdlOzOptics(OpticalDelayLine):
                 raise RuntimeError("Connection failed: " + str(err))
 
     def move(self, dist: float):
-        if self.conn.is_open:
-            if dist > 200 or dist < 0:
-                raise Exception("Invalid Move Parameter")
-            else:
-                self.set_step(int(dist * self.resolution))
+        if not self.conn.is_open:
+            raise RuntimeError("Moving ODL failed: can not connect to ODL device")
+        if dist > 200 or dist < 0:
+            raise Exception("Invalid Move Parameter")
         else:
-            raise Exception("moving ODL failed: can not connect to odl device")
+            self.set_step(int(dist * self.resolution))
 
     def set_step(self, value):
         cmd = "S" + str(value)
