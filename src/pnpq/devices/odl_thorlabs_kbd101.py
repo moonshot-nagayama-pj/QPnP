@@ -82,7 +82,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         response = get_status()
         if response is None:
-            raise Exception("Can not get the position")
+            raise Exception("Can not get the position correctly")
         else:
             position  = response[8:12]
             print(position)
