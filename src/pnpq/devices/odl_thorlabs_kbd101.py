@@ -39,7 +39,7 @@ class OdlThorlabs(OpticalDelayLine):
     def identify(self):
         if not self.conn.is_open:
             raise RuntimeError("Identification failed: can not connect to odl device")
-        self.conn.write(b"\x23\x02\x00\x00\x50\x01")
+        self.conn.write(b'\x23\x02\x00\x00\x50\x01')
 
     def move(self, move_mm: int):
         if not self.conn.is_open:
@@ -49,7 +49,7 @@ class OdlThorlabs(OpticalDelayLine):
                 raise Exception("Invalid move value!")
             else:
                 step(move_mm*self.resolution)
-                msg = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
+                msg = b'\x53\x04\x06\x00\xd0\x01\x00\x00'
                 msg = msg + (move_mm * 2000).to_bytes(4, byteorder="little")
                 self.conn.write(msg)
                 moving_time = move_mm / 20
@@ -60,7 +60,7 @@ class OdlThorlabs(OpticalDelayLine):
             raise Exception("ODL get_status failed: can not connect to ODL device")
         else:
             # MGMSG_MOT_REQ_STATUSUPDATE 0x480 but is it correct for KBD101?
-            msg = b"\x80\x04\x00\x00\x50\x01"
+            msg = b'\x80\x04\x00\x00\x50\x01'
             self.conn.write(msg)
 
             retries = 10
@@ -94,7 +94,7 @@ class OdlThorlabs(OpticalDelayLine):
         else:
                 # Get the current position let call it = 10
                 if steps > self.maxmove or steps < self.minmove:
-                    msg = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
+                    msg = b'\x53\x04\x06\x00\xd0\x01\x00\x00'
                     msg = msg + steps.to_bytes(4, byteorder="little")
                     self.conn.write(msg)
                     moving_time = steps / 20000
@@ -106,7 +106,10 @@ class OdlThorlabs(OpticalDelayLine):
         if not self.conn.is_open:
             raise Exception("ODL homing failed: can not connect to odl device")
         else:
-            self.conn.write(b"\x43\x04\x01\x00\x50\x01")
+            self.conn.write(b'\x43\x04\x01\x00\x50\x01')
+
+            # Checking Ishomed()?
+\
 
 
 if __name__ == "__main__":

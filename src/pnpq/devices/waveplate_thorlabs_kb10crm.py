@@ -42,7 +42,7 @@ class Waveplate:
 
     def identify(self):
         if self.conn.is_open:
-            self.conn.write(b"\x23\x02\x00\x00\x50\x01")
+            self.conn.write(b'\x23\x02\x00\x00\x50\x01')
         else:
             raise Exception("WP device is not connected!")
 
@@ -53,7 +53,7 @@ class Waveplate:
         if self.conn.is_open:
             # Home REQ command!
             self.conn.write(
-                b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
+                b'\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00'
             )
             time.sleep(0.5)
 
@@ -68,12 +68,13 @@ class Waveplate:
             raise Exception("Homing Failed: Can not connect to the device!")
 
     def rotate(self, degree):
-        # Relatibve Rotation
+        # Absolute Rotation
         if self.conn.is_open:
             if degree > 360 or degree < 0:
                 raise Exception("Invalid Rotation Parameter")
 
-            msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+            msg = b'\x53\x04\x06\x00\xb2\x01\x00\x00'
+            #msg = b'\x48\x04\x06\x00\xb2\x01\x00\x00'
             msg = msg + (degree * self.resolution).to_bytes(4, byteorder="little")
             self.conn.write(msg)
             time.sleep(degree / 10)
@@ -85,7 +86,7 @@ class Waveplate:
             if degree > 360 or degree < 0:
                 raise Exception("Invalid Rotation Parameter")
 
-            msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+            msg = b'\x48\x04\x06\x00\xb2\x01\x00\x00'
             msg = msg + (degree * self.resolution).to_bytes(4, byteorder="little")
             self.conn.write(msg)
             time.sleep(degree / 10)
@@ -97,7 +98,7 @@ class Waveplate:
             if degree > 360 or degree < 0:
                 raise Exception("Invalid Rotation Parameter")
 
-            msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+            msg = b'\x53\x04\x06\x00\xb2\x01\x00\x00'
             msg = msg + (degree * self.resolution).to_bytes(4, byteorder="little")
             self.conn.write(msg)
             time.sleep(degree / 10)
