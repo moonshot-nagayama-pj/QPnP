@@ -26,6 +26,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.home_timeout = 25
         self.move_timeout = 2
         self.maxmove = 100
+        self.minmove = 0
         self.name = "Thorlabs"
         self.model = "KBD101 driver DDS100/M Stage"
 
@@ -68,7 +69,7 @@ class OdlThorlabs(OpticalDelayLine):
         if not self.conn.is_open:
             raise Exception("Moving Failed: Can not connect to the device")
 
-        if move_mm > 100 or move_mm < 0:
+        if move_mm > self.maxmove or move_mm < self.minmove:
             raise Exception("Invalid/ Out of range value for ODL moving!")
 
         msg = b'\x53\x04\x06\x00\xd0\x01\x00\x00'

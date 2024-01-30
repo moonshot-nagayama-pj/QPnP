@@ -24,6 +24,9 @@ class Waveplate:
         self.port = serial_port
         self.conn.port = self.port
         self.resolution = 136533
+        self.rotate_timeout  = 10
+        self.home_timeout = 20
+
 
         find_Port = False
         if self.device_sn is not None:
@@ -61,8 +64,10 @@ class Waveplate:
 
             #result += self.conn.read(noReadBytes).encode('backslashreplace')
             result += self.conn.read(noReadBytes)
-            #print(str(result))
-            #print("try to find sequence: " + str(sequence))
+            print(str(result))
+            print("try to find sequence: " + str(sequence))
+            print("retries: " + str(retries))
+
             if (noReadBytes > 0):
                 if result.find(sequence) == -1:  #find non matching sequence!
                     print("Unknown Sequence have been found: " + str(result))
@@ -70,7 +75,7 @@ class Waveplate:
                 else:
                 #if result.find(sequence) == 0: #find the sequence at the begining of the response
                     readPhase = False
-                    #print("FInd sequence:" + str(result))
+                    print("FInd sequence:" + str(result))
                     return result
             time.sleep(1)
             retries -= 1
@@ -98,9 +103,24 @@ class Waveplate:
 
         if not homed:
             raise Warning("Can not received HOME Complete!")
-        #else:
-        #    print("HOME complete:" + str(homed))
+        else:
+            print("HOME complete:" + str(homed))
+            return "HOMED"
 
+
+    def getpos(self):
+        if not self.conn.is_open:
+            raise Exception("STATUS UPDATE failed: can not connect to the device")
+
+        # MGMSG_MOT_REQ_STATUSUPDATE
+        msg = b'\x80\x04\x00\x32\x01'
+        #msg = b'\x12\x00\x00\x32\x01'
+        self.conn.write(msg)
+
+        getpos_complete = self.waitForReply(b'\x81\x04', self.rotate_timeout)
+        #if not getpos_complete:
+        #    raise Warning("Can not receive GET_POS Response")
+        return getpos_complete
 
     def rotate(self, degree):
         # Absolute Rotation
@@ -115,9 +135,35 @@ class Waveplate:
             msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
             self.conn.write(msg)
 
-            rotate_complete = self.waitForReply(b'\x64\x04', 10)
+            rotate_complete = self.waitForReply(b'\x64\x04', self.rotate_timeout)
+            #print(rotate_complete)
             if not rotate_complete:
                 raise Warning("Can not receive ROTATE Complete Response!")
+            else:
+                return "ROTATE COMPLETE"
+
+    def step_backward(self, steps):
+        if not self.conn.is_open:
+            raise Exception("Move forward failed: can not connect to Thorlabs ODL device")
+
+        if steps > MAX_STEPS:
+            raise Exception("required steps are more that the device resolution: " + str(self.resolution))
+
+        #negate steps
+        steps = -steps
+        #relative move
+        msg = b'\x48\x04\x06\x00\xb2\x01\x00\x00'
+        msg = msg + (int(steps)).to_bytes(4, byteorder="little", signed = True)
+        self.conn.write(msg)
+
+        backward_complete = self.waitForReply(b'\x64\x04', self.rotate_timeout)
+
+        if not backward_complete:
+            raise Warning("Can not received STEP_FW Complete!")
+        else:
+            return "STEP BACKWARD COMPLETE"
+
+
 
     def step_forward(self, steps):
         if not self.conn.is_open:
@@ -132,9 +178,11 @@ class Waveplate:
         msg = msg + (int(steps)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
-        forward_complete = self.waitForReply(b'\x64\x04', 10)
+        forward_complete = self.waitForReply(b'\x64\x04', self.rotate_timeout)
         if not forward_complete:
             raise Warning("Can not received STEP_FW Complete!")
+        else:
+            return "STEP FORWARD COMPLETE"
 
 
     def rotate_relative(self, degree):
@@ -149,6 +197,8 @@ class Waveplate:
             rotate_complete = self.waitForReply(b'\x64\x04', 10)
             if not rotate_complete:
                 raise Warning("Can not received ROTATE Complete!")
+            else:
+                return "RELATIVE ROTATE COMPLETE"
 
             #time.sleep(degree / 10)
         else:
