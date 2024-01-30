@@ -79,28 +79,27 @@ class Waveplate:
     def home(self):
         if not self.conn.is_open:
             raise Exception("Homing Failed: Can not connect to the device!")
-        else:
 
-            # Home REQ command!
-            self.conn.write(
-                b'\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00'
-            )
-            time.sleep(0.5)
+        # Home REQ command!
+        self.conn.write(
+            b'\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00'
+        )
+        time.sleep(0.5)
 
-            # HOME SET command!
-            self.conn.write(b'\x06\x00\x00\x00\x50\x01')
-            time.sleep(0.5)
+        # HOME SET command!
+        self.conn.write(b'\x06\x00\x00\x00\x50\x01')
+        time.sleep(0.5)
 
-            # HOME Move command!
-            self.conn.write(b'\x43\x04\x01\x00\x50\x01')
-            time.sleep(0.5)
+        # HOME Move command!
+        self.conn.write(b'\x43\x04\x01\x00\x50\x01')
+        time.sleep(0.5)
 
-            homed = self.waitForReply(b'\x44\x04', 20)
+        homed = self.waitForReply(b'\x44\x04', 20)
 
-            if not homed:
-                raise Warning("Can not received HOME Complete!")
-            else:
-                #print("HOME complete:" + str(homed))
+        if not homed:
+            raise Warning("Can not received HOME Complete!")
+        #else:
+        #    print("HOME complete:" + str(homed))
 
 
     def rotate(self, degree):
@@ -118,9 +117,7 @@ class Waveplate:
 
             rotate_complete = self.waitForReply(b'\x64\x04', 10)
             if not rotate_complete:
-                raise Warning("Can not received ROTATE Complete!")
-            else:
-                #print("Rotate complete:" + str(rotate_complete))
+                raise Warning("Can not receive ROTATE Complete Response!")
 
     def step_forward(self, steps):
         if not self.conn.is_open:
@@ -138,8 +135,6 @@ class Waveplate:
         forward_complete = self.waitForReply(b'\x64\x04', 10)
         if not forward_complete:
             raise Warning("Can not received STEP_FW Complete!")
-        else:
-            #print("Step Forward complete:" + str(forward_complete))
 
 
     def rotate_relative(self, degree):
@@ -154,8 +149,6 @@ class Waveplate:
             rotate_complete = self.waitForReply(b'\x64\x04', 10)
             if not rotate_complete:
                 raise Warning("Can not received ROTATE Complete!")
-            else:
-                #print("Rotate complete:" + str(rotate_complete))
 
             #time.sleep(degree / 10)
         else:
