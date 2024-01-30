@@ -39,9 +39,11 @@ class Switch:
 
 
 
-
-    def __connect__(self):
-            self.conn.open()
+    def connect(self):
+            try:
+                self.conn.open()
+            except Exception as err:
+                raise Exception("Connection failed: " + str(err))
 
     #def current_state(self):
     #    if self.conn.is_open:
@@ -49,7 +51,10 @@ class Switch:
 
     def bar_state(self):
         if self.conn.is_open:
-            self.conn.write(b'S 1\x0A')
+            try:
+                self.conn.write(b'S 1\x0A')
+            except Exception as e:
+                raise Exception("Failed to set bar state: " + str(e))
         else:
             raise Exception("Switch is not connected!")
 
