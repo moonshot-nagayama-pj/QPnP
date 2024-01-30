@@ -61,8 +61,8 @@ class Waveplate:
 
             #result += self.conn.read(noReadBytes).encode('backslashreplace')
             result += self.conn.read(noReadBytes)
-            print(str(result))
-            print("try to find sequence: " + str(sequence))
+            #print(str(result))
+            #print("try to find sequence: " + str(sequence))
             if (noReadBytes > 0):
                 if result.find(sequence) == -1:  #find non matching sequence!
                     print("Unknown Sequence have been found: " + str(result))
@@ -70,7 +70,7 @@ class Waveplate:
                 else:
                 #if result.find(sequence) == 0: #find the sequence at the begining of the response
                     readPhase = False
-                    print("FInd sequence:" + str(result))
+                    #print("FInd sequence:" + str(result))
                     return result
             time.sleep(1)
             retries -= 1
@@ -100,7 +100,7 @@ class Waveplate:
             if not homed:
                 raise Warning("Can not received HOME Complete!")
             else:
-                print("HOME complete:" + str(homed))
+                #print("HOME complete:" + str(homed))
 
 
     def rotate(self, degree):
@@ -120,7 +120,7 @@ class Waveplate:
             if not rotate_complete:
                 raise Warning("Can not received ROTATE Complete!")
             else:
-                print("Rotate complete:" + str(rotate_complete))
+                #print("Rotate complete:" + str(rotate_complete))
 
     def step_forward(self, steps):
         if not self.conn.is_open:
@@ -139,7 +139,7 @@ class Waveplate:
         if not forward_complete:
             raise Warning("Can not received STEP_FW Complete!")
         else:
-            print("Step Forward complete:" + str(forward_complete))
+            #print("Step Forward complete:" + str(forward_complete))
 
 
     def rotate_relative(self, degree):
@@ -155,7 +155,7 @@ class Waveplate:
             if not rotate_complete:
                 raise Warning("Can not received ROTATE Complete!")
             else:
-                print("Rotate complete:" + str(rotate_complete))
+                #print("Rotate complete:" + str(rotate_complete))
 
             #time.sleep(degree / 10)
         else:
