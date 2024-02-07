@@ -5,6 +5,7 @@ from pnpq.errors import (
     DevicePortNotFoundError,
     DeviceDisconnectedError,
     WaveplateInvalidStepsError,
+    WaveplateInvalidDegreeError,
 )
 from pnpq.utils import get_available_port
 
@@ -67,7 +68,7 @@ class Waveplate:
     def __ensure_valid_degree(self, degree: float | int) -> None:
         if 0 <= degree <= 360:
             return
-        raise WaveplateInvalidStepsError(
+        raise WaveplateInvalidDegreeError(
             f"Invalid degree specified: {degree}. must be in a range [0,360]"
         )
 
