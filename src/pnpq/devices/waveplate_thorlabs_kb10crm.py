@@ -39,14 +39,16 @@ class Waveplate:
                     "Can not find Rotator WavePlate by serial_number (FTDI_SN)"
                 )
 
+    def __ensure_port_open(self):
+        if not self.conn.is_open:
+            raise DeviceDisconnectedError(f"{self} is disconnected")
+
     def connect(self):
         self.conn.open()
 
     def identify(self):
-        if self.conn.is_open:
-            self.conn.write(b"\x23\x02\x00\x00\x50\x01")
-        else:
-            raise DeviceDisconnectedError("WP device is not connected!")
+        self.__ensure_port_open()
+        self.conn.write(b"\x23\x02\x00\x00\x50\x01")
 
     def resolution(self):
         print("Device Resolution: 136533 steps/degree")
@@ -78,8 +80,7 @@ class Waveplate:
             retries -= 1
 
     def home(self):
-        if not self.conn.is_open:
-            raise DeviceDisconnectedError("Homing Failed: Can not connect to the device!")
+        self.__ensure_port_open()
 
         # Home REQ command!
         self.conn.write(
@@ -104,8 +105,7 @@ class Waveplate:
             return "HOMED"
 
     def getpos(self):
-        if not self.conn.is_open:
-            raise DeviceDisconnectedError("STATUS UPDATE failed: can not connect to the device")
+        self.__ensure_port_open()
 
         # MGMSG_MOT_REQ_STATUSUPDATE
         msg = b"\x80\x04\x00\x32\x01"
@@ -118,30 +118,25 @@ class Waveplate:
         return getpos_complete
 
     def rotate(self, degree):
+        self.__ensure_port_open()
         # Absolute Rotation
-        if not self.conn.is_open:
-            raise Exception("Moving Failed: Can not connect to the device")
 
+        if degree > 360 or degree < 0:
+            raise Exception("Invalid Rotation Parameter")
+
+        msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        self.conn.write(msg)
+
+        rotate_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
+        # print(rotate_complete)
+        if not rotate_complete:
+            raise Warning("Can not receive ROTATE Complete Response!")
         else:
-            if degree > 360 or degree < 0:
-                raise Exception("Invalid Rotation Parameter")
-
-            msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
-            msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
-            self.conn.write(msg)
-
-            rotate_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
-            # print(rotate_complete)
-            if not rotate_complete:
-                raise Warning("Can not receive ROTATE Complete Response!")
-            else:
-                return "ROTATE COMPLETE"
+            return "ROTATE COMPLETE"
 
     def step_backward(self, steps):
-        if not self.conn.is_open:
-            raise Exception(
-                "Move forward failed: can not connect to Thorlabs ODL device"
-            )
+        self.__ensure_port_open()
 
         if steps > MAX_STEPS:
             raise Exception(
@@ -164,8 +159,7 @@ class Waveplate:
             return "STEP BACKWARD COMPLETE"
 
     def step_forward(self, steps):
-        if not self.conn.is_open:
-            raise Exception("Move one step forward")
+        self.__ensure_port_open()
 
         MAX_STEPS = self.resolution
         if steps > MAX_STEPS:
@@ -186,39 +180,34 @@ class Waveplate:
             return "STEP FORWARD COMPLETE"
 
     def rotate_relative(self, degree):
-        if self.conn.is_open:
-            if degree > 360 or degree < 0:
-                raise Exception("Invalid Rotation Parameter")
+        self.__ensure_port_open()
+        if degree > 360 or degree < 0:
+            raise Exception("Invalid Rotation Parameter")
 
-            msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
-            msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
-            self.conn.write(msg)
+        msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        self.conn.write(msg)
 
-            rotate_complete = self.waitForReply(b"\x64\x04", 10)
-            if not rotate_complete:
-                raise Warning("Can not received ROTATE Complete!")
-            else:
-                return "RELATIVE ROTATE COMPLETE"
+        rotate_complete = self.waitForReply(b"\x64\x04", 10)
+        if not rotate_complete:
+            raise Warning("Can not received ROTATE Complete!")
+        else:
+            return "RELATIVE ROTATE COMPLETE"
 
             # time.sleep(degree / 10)
-        else:
-            raise Exception("Moving Failed: Can not connect to the device")
 
     def rotate_absolute(self, degree):
-        if self.conn.is_open:
-            if degree > 360 or degree < 0:
-                raise Exception("Invalid Rotation Parameter")
+        self.__ensure_port_open()
+        if degree > 360 or degree < 0:
+            raise Exception("Invalid Rotation Parameter")
 
-            msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
-            msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
-            self.conn.write(msg)
-            time.sleep(degree / 10)
-        else:
-            raise Exception("Moving Failed: Can not connect to the device")
+        msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        self.conn.write(msg)
+        time.sleep(degree / 10)
 
     def custom_home(self, degree):
-        if not self.conn.is_open:
-            raise Exception("Relative Homing Failed: Can not connect to the device!")
+        self.__ensure_port_open()
 
         if degree > 360 or degree < 0:
             raise Exception("Invalid degree parameter in Customized Home")
