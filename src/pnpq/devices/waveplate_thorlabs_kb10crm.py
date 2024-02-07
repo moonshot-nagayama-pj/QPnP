@@ -1,6 +1,8 @@
 import serial
 import time
 from serial import Serial
+from pnpq.errors import DevicePortNotFoundError, DeviceDisconnectedError
+from pnpq.utils import get_available_port
 
 
 class Waveplate:
@@ -11,7 +13,10 @@ class Waveplate:
     relative_home: float
 
     def __init__(
-        self, serial_port: str = None, serial_number: str = None, config_file=None
+        self,
+        serial_port: str | None = None,
+        serial_number: str | None = None,
+        config_file=None,
     ):
         self.conn = Serial()
         self.conn.baudrate = 115200
@@ -24,82 +29,74 @@ class Waveplate:
         self.port = serial_port
         self.conn.port = self.port
         self.resolution = 136533
-        self.rotate_timeout  = 10
+        self.rotate_timeout = 10
         self.home_timeout = 20
 
-
-        find_Port = False
         if self.device_sn is not None:
-            available_Ports = serial.tools.list_ports.comports()
-            for ports in available_Ports:
-                if ports.serial_number == self.device_sn:
-                    self.conn.port = ports.device
-                    find_Port = True
-                    break
-            if find_Port == False:
-                raise Exception(
+            self.conn.port = get_available_port(self.device_sn)
+            if self.conn.port is None:
+                raise DevicePortNotFoundError(
                     "Can not find Rotator WavePlate by serial_number (FTDI_SN)"
                 )
+
+    def __ensure_port_open(self):
+        if not self.conn.is_open:
+            raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def connect(self):
         self.conn.open()
 
     def identify(self):
-        if self.conn.is_open:
-            self.conn.write(b"\x23\x02\x00\x00\x50\x01")
-        else:
-            raise Exception("WP device is not connected!")
+        self.__ensure_port_open()
+        self.conn.write(b"\x23\x02\x00\x00\x50\x01")
 
     def resolution(self):
         print("Device Resolution: 136533 steps/degree")
 
-
     def waitForReply(self, sequence, timeout):
         retries = timeout
-        result = b''
+        result = b""
         readPhase = True
         while readPhase and retries > 0:
-            #while True:
+            # while True:
             noReadBytes = self.conn.in_waiting
 
-            #result += self.conn.read(noReadBytes).encode('backslashreplace')
+            # result += self.conn.read(noReadBytes).encode('backslashreplace')
             result += self.conn.read(noReadBytes)
             print(str(result))
             print("try to find sequence: " + str(sequence))
             print("retries: " + str(retries))
 
-            if (noReadBytes > 0):
-                if result.find(sequence) == -1:  #find non matching sequence!
+            if noReadBytes > 0:
+                if result.find(sequence) == -1:  # find non matching sequence!
                     print("Unknown Sequence have been found: " + str(result))
 
                 else:
-                #if result.find(sequence) == 0: #find the sequence at the begining of the response
+                    # if result.find(sequence) == 0: #find the sequence at the begining of the response
                     readPhase = False
                     print("FInd sequence:" + str(result))
                     return result
             time.sleep(1)
             retries -= 1
 
-
     def home(self):
-        if not self.conn.is_open:
-            raise Exception("Homing Failed: Can not connect to the device!")
+        self.__ensure_port_open()
 
         # Home REQ command!
         self.conn.write(
-            b'\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00'
+            b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
         )
         time.sleep(0.5)
 
         # HOME SET command!
-        self.conn.write(b'\x06\x00\x00\x00\x50\x01')
+        self.conn.write(b"\x06\x00\x00\x00\x50\x01")
         time.sleep(0.5)
 
         # HOME Move command!
-        self.conn.write(b'\x43\x04\x01\x00\x50\x01')
+        self.conn.write(b"\x43\x04\x01\x00\x50\x01")
         time.sleep(0.5)
 
-        homed = self.waitForReply(b'\x44\x04', 20)
+        homed = self.waitForReply(b"\x44\x04", 20)
 
         if not homed:
             raise Warning("Can not received HOME Complete!")
@@ -107,119 +104,110 @@ class Waveplate:
             print("HOME complete:" + str(homed))
             return "HOMED"
 
-
     def getpos(self):
-        if not self.conn.is_open:
-            raise Exception("STATUS UPDATE failed: can not connect to the device")
+        self.__ensure_port_open()
 
         # MGMSG_MOT_REQ_STATUSUPDATE
-        msg = b'\x80\x04\x00\x32\x01'
-        #msg = b'\x12\x00\x00\x32\x01'
+        msg = b"\x80\x04\x00\x32\x01"
+        # msg = b'\x12\x00\x00\x32\x01'
         self.conn.write(msg)
 
-        getpos_complete = self.waitForReply(b'\x81\x04', self.rotate_timeout)
-        #if not getpos_complete:
+        getpos_complete = self.waitForReply(b"\x81\x04", self.rotate_timeout)
+        # if not getpos_complete:
         #    raise Warning("Can not receive GET_POS Response")
         return getpos_complete
 
     def rotate(self, degree):
+        self.__ensure_port_open()
         # Absolute Rotation
-        if not self.conn.is_open:
-            raise Exception("Moving Failed: Can not connect to the device")
 
-        else:
-            if degree > 360 or degree < 0:
-                raise Exception("Invalid Rotation Parameter")
+        if degree > 360 or degree < 0:
+            raise Exception("Invalid Rotation Parameter")
 
-            msg = b'\x53\x04\x06\x00\xb2\x01\x00\x00'
-            msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
-            self.conn.write(msg)
-
-            rotate_complete = self.waitForReply(b'\x64\x04', self.rotate_timeout)
-            #print(rotate_complete)
-            if not rotate_complete:
-                raise Warning("Can not receive ROTATE Complete Response!")
-            else:
-                return "ROTATE COMPLETE"
-
-    def step_backward(self, steps):
-        if not self.conn.is_open:
-            raise Exception("Move forward failed: can not connect to Thorlabs ODL device")
-
-        if steps > MAX_STEPS:
-            raise Exception("required steps are more that the device resolution: " + str(self.resolution))
-
-        #negate steps
-        steps = -steps
-        #relative move
-        msg = b'\x48\x04\x06\x00\xb2\x01\x00\x00'
-        msg = msg + (int(steps)).to_bytes(4, byteorder="little", signed = True)
+        msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
-        backward_complete = self.waitForReply(b'\x64\x04', self.rotate_timeout)
+        rotate_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
+        # print(rotate_complete)
+        if not rotate_complete:
+            raise Warning("Can not receive ROTATE Complete Response!")
+        else:
+            return "ROTATE COMPLETE"
+
+    def step_backward(self, steps):
+        self.__ensure_port_open()
+
+        if steps > MAX_STEPS:
+            raise Exception(
+                "required steps are more that the device resolution: "
+                + str(self.resolution)
+            )
+
+        # negate steps
+        steps = -steps
+        # relative move
+        msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+        msg = msg + (int(steps)).to_bytes(4, byteorder="little", signed=True)
+        self.conn.write(msg)
+
+        backward_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
 
         if not backward_complete:
             raise Warning("Can not received STEP_FW Complete!")
         else:
             return "STEP BACKWARD COMPLETE"
 
-
-
     def step_forward(self, steps):
-        if not self.conn.is_open:
-            raise Exception("Move one step forward")
+        self.__ensure_port_open()
 
         MAX_STEPS = self.resolution
         if steps > MAX_STEPS:
-            raise Exception("required steps are more that the device resolution: " + str(self.resolution))
-        #relative
+            raise Exception(
+                "required steps are more that the device resolution: "
+                + str(self.resolution)
+            )
+        # relative
 
-        msg = b'\x48\x04\x06\x00\xb2\x01\x00\x00'
+        msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
         msg = msg + (int(steps)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
-        forward_complete = self.waitForReply(b'\x64\x04', self.rotate_timeout)
+        forward_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
         if not forward_complete:
             raise Warning("Can not received STEP_FW Complete!")
         else:
             return "STEP FORWARD COMPLETE"
 
-
     def rotate_relative(self, degree):
-        if self.conn.is_open:
-            if degree > 360 or degree < 0:
-                raise Exception("Invalid Rotation Parameter")
+        self.__ensure_port_open()
+        if degree > 360 or degree < 0:
+            raise Exception("Invalid Rotation Parameter")
 
-            msg = b'\x48\x04\x06\x00\xb2\x01\x00\x00'
-            msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
-            self.conn.write(msg)
+        msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        self.conn.write(msg)
 
-            rotate_complete = self.waitForReply(b'\x64\x04', 10)
-            if not rotate_complete:
-                raise Warning("Can not received ROTATE Complete!")
-            else:
-                return "RELATIVE ROTATE COMPLETE"
-
-            #time.sleep(degree / 10)
+        rotate_complete = self.waitForReply(b"\x64\x04", 10)
+        if not rotate_complete:
+            raise Warning("Can not received ROTATE Complete!")
         else:
-            raise Exception("Moving Failed: Can not connect to the device")
+            return "RELATIVE ROTATE COMPLETE"
+
+            # time.sleep(degree / 10)
 
     def rotate_absolute(self, degree):
-        if self.conn.is_open:
-            if degree > 360 or degree < 0:
-                raise Exception("Invalid Rotation Parameter")
+        self.__ensure_port_open()
+        if degree > 360 or degree < 0:
+            raise Exception("Invalid Rotation Parameter")
 
-            msg = b'\x53\x04\x06\x00\xb2\x01\x00\x00'
-            msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
-            self.conn.write(msg)
-            time.sleep(degree / 10)
-        else:
-            raise Exception("Moving Failed: Can not connect to the device")
-
+        msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        self.conn.write(msg)
+        time.sleep(degree / 10)
 
     def custom_home(self, degree):
-        if not self.conn.is_open:
-            raise Exception("Relative Homing Failed: Can not connect to the device!")
+        self.__ensure_port_open()
 
         if degree > 360 or degree < 0:
             raise Exception("Invalid degree parameter in Customized Home")
