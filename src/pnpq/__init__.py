@@ -6,13 +6,9 @@
 __version__ = "0.0.1"
 from .devices import *
 
-__all__ = ["pnpq", "Waveplate", "Switch", "OpticalDelayLine"]
+__all__ = ["Waveplate", "Switch", "OpticalDelayLine"]
 
 
 class pnpq:
     def __init__(self):
         pass
-
-
-# def list_devices():
-#    return "Hello from pnpq!"
