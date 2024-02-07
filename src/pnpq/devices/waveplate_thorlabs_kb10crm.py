@@ -10,25 +10,27 @@ class Waveplate:
     serial_number: str
     port: str
     resolution: int
+    max_steps: int
     relative_home: float
 
     def __init__(
         self,
         serial_port: str | None = None,
         serial_number: str | None = None,
-        config_file=None,
     ):
         self.conn = Serial()
         self.conn.baudrate = 115200
         self.conn.bytesize = 8
         self.conn.stopbits = 1
         self.conn.parity = "N"
-        self.conn.rtscts = 1
+        self.conn.rtscts = True
 
         self.device_sn = serial_number
-        self.port = serial_port
+        if serial_port is not None:
+            self.port = serial_port
         self.conn.port = self.port
         self.resolution = 136533
+        self.max_steps = 136533
         self.rotate_timeout = 10
         self.home_timeout = 20
 
@@ -39,29 +41,30 @@ class Waveplate:
                     "Can not find Rotator WavePlate by serial_number (FTDI_SN)"
                 )
 
-    def __ensure_port_open(self):
+    def __ensure_port_open(self) -> None:
         if not self.conn.is_open:
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
-    def connect(self):
-        self.conn.open()
+    def __ensure_less_than_max_steps(self, steps: int) -> None:
+        if steps > self.max_steps:
+            raise WaveplateInvalidStepsError(
+                f"the given steps: {steps} exceeds the device max steps: {self.max_steps}"
+            )
 
-    def identify(self):
-        self.__ensure_port_open()
-        self.conn.write(b"\x23\x02\x00\x00\x50\x01")
+    def __ensure_valid_degree(self, degree: float | int) -> None:
+        if 0 <= degree <= 360:
+            return
+        raise WaveplateInvalidStepsError(
+            f"Invalid degree specified: {degree}. must be in a range [0,360]"
+        )
 
-    def resolution(self):
-        print("Device Resolution: 136533 steps/degree")
-
-    def waitForReply(self, sequence, timeout):
-        retries = timeout
+    def __wait_for_reply(self, sequence: bytes, num_retries: int) -> bytes | None:
+        retries = num_retries
         result = b""
         readPhase = True
         while readPhase and retries > 0:
-            # while True:
             noReadBytes = self.conn.in_waiting
 
-            # result += self.conn.read(noReadBytes).encode('backslashreplace')
             result += self.conn.read(noReadBytes)
             print(str(result))
             print("try to find sequence: " + str(sequence))
@@ -78,6 +81,13 @@ class Waveplate:
                     return result
             time.sleep(1)
             retries -= 1
+
+    def connect(self):
+        self.conn.open()
+
+    def identify(self):
+        self.__ensure_port_open()
+        self.conn.write(b"\x23\x02\x00\x00\x50\x01")
 
     def home(self):
         self.__ensure_port_open()
@@ -96,7 +106,7 @@ class Waveplate:
         self.conn.write(b"\x43\x04\x01\x00\x50\x01")
         time.sleep(0.5)
 
-        homed = self.waitForReply(b"\x44\x04", 20)
+        homed = self.__wait_for_reply(b"\x44\x04", 20)
 
         if not homed:
             raise Warning("Can not received HOME Complete!")
@@ -112,23 +122,21 @@ class Waveplate:
         # msg = b'\x12\x00\x00\x32\x01'
         self.conn.write(msg)
 
-        getpos_complete = self.waitForReply(b"\x81\x04", self.rotate_timeout)
+        getpos_complete = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
         # if not getpos_complete:
         #    raise Warning("Can not receive GET_POS Response")
         return getpos_complete
 
     def rotate(self, degree):
-        self.__ensure_port_open()
         # Absolute Rotation
-
-        if degree > 360 or degree < 0:
-            raise Exception("Invalid Rotation Parameter")
+        self.__ensure_port_open()
+        self.__ensure_valid_degree(degree)
 
         msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
-        rotate_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
+        rotate_complete = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
         # print(rotate_complete)
         if not rotate_complete:
             raise Warning("Can not receive ROTATE Complete Response!")
@@ -137,21 +145,16 @@ class Waveplate:
 
     def step_backward(self, steps):
         self.__ensure_port_open()
-
-        if steps > MAX_STEPS:
-            raise Exception(
-                "required steps are more that the device resolution: "
-                + str(self.resolution)
-            )
-
         # negate steps
         steps = -steps
+        self.__ensure_less_than_max_steps(steps)
+
         # relative move
         msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
         msg = msg + (int(steps)).to_bytes(4, byteorder="little", signed=True)
         self.conn.write(msg)
 
-        backward_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
+        backward_complete = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
 
         if not backward_complete:
             raise Warning("Can not received STEP_FW Complete!")
@@ -160,20 +163,14 @@ class Waveplate:
 
     def step_forward(self, steps):
         self.__ensure_port_open()
+        self.__ensure_less_than_max_steps(steps)
 
-        MAX_STEPS = self.resolution
-        if steps > MAX_STEPS:
-            raise Exception(
-                "required steps are more that the device resolution: "
-                + str(self.resolution)
-            )
         # relative
-
         msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
         msg = msg + (int(steps)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
-        forward_complete = self.waitForReply(b"\x64\x04", self.rotate_timeout)
+        forward_complete = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
         if not forward_complete:
             raise Warning("Can not received STEP_FW Complete!")
         else:
@@ -188,7 +185,7 @@ class Waveplate:
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
-        rotate_complete = self.waitForReply(b"\x64\x04", 10)
+        rotate_complete = self.__wait_for_reply(b"\x64\x04", 10)
         if not rotate_complete:
             raise Warning("Can not received ROTATE Complete!")
         else:
@@ -198,8 +195,7 @@ class Waveplate:
 
     def rotate_absolute(self, degree):
         self.__ensure_port_open()
-        if degree > 360 or degree < 0:
-            raise Exception("Invalid Rotation Parameter")
+        self.__ensure_valid_degree(degree)
 
         msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
@@ -208,9 +204,7 @@ class Waveplate:
 
     def custom_home(self, degree):
         self.__ensure_port_open()
-
-        if degree > 360 or degree < 0:
-            raise Exception("Invalid degree parameter in Customized Home")
+        self.__ensure_valid_degree(degree)
 
         self.home()
         self.relative_home = degree
