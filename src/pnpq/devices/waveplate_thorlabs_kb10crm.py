@@ -15,7 +15,7 @@ HOME_MOVE_COMMAND = b"\x43\x04\x01\x00\x50\x01"
 class Waveplate:
     conn: Serial
     serial_number: str
-    port: str
+    port: str | None
     resolution: int
     max_steps: int
     relative_home: float
@@ -35,7 +35,7 @@ class Waveplate:
         self.device_sn = serial_number
         if serial_port is not None:
             self.port = serial_port
-        self.conn.port = self.port
+            self.conn.port = self.port
         self.resolution = 136533
         self.max_steps = 136533
         self.rotate_timeout = 10
