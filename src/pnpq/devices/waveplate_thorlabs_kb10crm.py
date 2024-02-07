@@ -1,9 +1,16 @@
-import serial
 import time
 from serial import Serial
-from pnpq.errors import DevicePortNotFoundError, DeviceDisconnectedError
+
+from pnpq.errors import (
+    DevicePortNotFoundError,
+    DeviceDisconnectedError,
+    WaveplateInvalidStepsError,
+)
 from pnpq.utils import get_available_port
 
+HOME_REQ_COMMAND = b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
+HOME_SET_COMMAND = b"\x06\x00\x00\x00\x50\x01"
+HOME_MOVE_COMMAND = b"\x43\x04\x01\x00\x50\x01"
 
 class Waveplate:
     conn: Serial
@@ -92,18 +99,13 @@ class Waveplate:
     def home(self):
         self.__ensure_port_open()
 
-        # Home REQ command!
-        self.conn.write(
-            b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
-        )
+        self.conn.write(HOME_REQ_COMMAND)
         time.sleep(0.5)
 
-        # HOME SET command!
-        self.conn.write(b"\x06\x00\x00\x00\x50\x01")
+        self.conn.write(HOME_SET_COMMAND)
         time.sleep(0.5)
 
-        # HOME Move command!
-        self.conn.write(b"\x43\x04\x01\x00\x50\x01")
+        self.conn.write(HOME_MOVE_COMMAND)
         time.sleep(0.5)
 
         homed = self.__wait_for_reply(b"\x44\x04", 20)
@@ -218,4 +220,4 @@ class Waveplate:
         self.rotate(degree + self.relative_home)
 
     def __repr__(self) -> str:
-        return "Waveplate<Tholabs KB10CRM>"
+        return f"Waveplate<Tholabs KB10CRM {self.conn.port}>"
