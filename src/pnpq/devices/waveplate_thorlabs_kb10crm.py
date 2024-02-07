@@ -89,10 +89,10 @@ class Waveplate:
             time.sleep(1)
             retries -= 1
 
-    def connect(self):
+    def connect(self) -> None:
         self.conn.open()
 
-    def identify(self):
+    def identify(self) -> None:
         self.__ensure_port_open()
         self.conn.write(b"\x23\x02\x00\x00\x50\x01")
 
@@ -114,7 +114,6 @@ class Waveplate:
             raise Warning("Can not received HOME Complete!")
         else:
             print("HOME complete:" + str(homed))
-            return "HOMED"
 
     def getpos(self):
         self.__ensure_port_open()
@@ -129,7 +128,7 @@ class Waveplate:
         #    raise Warning("Can not receive GET_POS Response")
         return getpos_complete
 
-    def rotate(self, degree):
+    def rotate(self, degree: int | float):
         # Absolute Rotation
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
@@ -145,7 +144,7 @@ class Waveplate:
         else:
             return "ROTATE COMPLETE"
 
-    def step_backward(self, steps):
+    def step_backward(self, steps: int):
         self.__ensure_port_open()
         # negate steps
         steps = -steps
@@ -163,7 +162,7 @@ class Waveplate:
         else:
             return "STEP BACKWARD COMPLETE"
 
-    def step_forward(self, steps):
+    def step_forward(self, steps: int):
         self.__ensure_port_open()
         self.__ensure_less_than_max_steps(steps)
 
@@ -180,8 +179,7 @@ class Waveplate:
 
     def rotate_relative(self, degree):
         self.__ensure_port_open()
-        if degree > 360 or degree < 0:
-            raise Exception("Invalid Rotation Parameter")
+        self.__ensure_valid_degree(degree)
 
         msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
