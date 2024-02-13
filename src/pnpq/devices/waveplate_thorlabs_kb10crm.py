@@ -100,6 +100,7 @@ class Waveplate:
         self.logger.info("call identify cmd")
         self.__ensure_port_open()
         self.conn.write(b"\x23\x02\x00\x00\x50\x01")
+        # self.conn.write(b"\x23\x02\x00\x00\x32\x01")
 
     def home(self) -> bytes | None:
         self.logger.info("call home cmd")
@@ -125,7 +126,12 @@ class Waveplate:
         self.__ensure_port_open()
 
         # MGMSG_MOT_REQ_STATUSUPDATE
-        msg = b"\x80\x04\x00\x32\x01"
+        # msg = b"\x80\x04\x00\x32\x01"
+        # msg = b"\x80\x04\x00\x50\x01"
+
+        # 0x0011 MGMSG_HW_START_UPDATEMSGS
+        msg = b"\x11\x00\x00\x32\x01"
+
         # msg = b'\x12\x00\x00\x32\x01'
         self.conn.write(msg)
 
