@@ -9,9 +9,12 @@ from pnpq.errors import (
 )
 from pnpq.utils import get_available_port
 
+HW_SET_INFO_COMMAND = b"\x05\x00\x00\x00\x50\x01"
+
 HOME_REQ_COMMAND = (
     b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
 )
+# HOME_SET_COMMAND = b"\x41\x04\x00\x50\x01"
 HOME_SET_COMMAND = b"\x06\x00\x00\x00\x50\x01"
 HOME_MOVE_COMMAND = b"\x43\x04\x01\x00\x50\x01"
 
@@ -40,10 +43,12 @@ class Waveplate:
         if serial_port is not None:
             self.port = serial_port
             self.conn.port = self.port
+
         self.resolution = 136533
         self.max_steps = 136533
         self.rotate_timeout = 10
         self.home_timeout = 20
+        self.max_channel = 1
 
         if self.device_sn is not None:
             self.conn.port = get_available_port(self.device_sn)
@@ -78,7 +83,7 @@ class Waveplate:
         while retries > 0:
             num_read_bytes = self.conn.in_waiting
 
-            result += self.conn.read(num_read_bytes)
+            result = self.conn.read(num_read_bytes)
             self.logger.debug(
                 f"try to find sequence: {sequence}, results: {result}, retry count: {retries}"
             )
@@ -92,11 +97,13 @@ class Waveplate:
             retries -= 1
 
     def connect(self) -> None:
+        print("test")
         self.logger.info("connecting...")
         self.conn.open()
         self.logger.info("connected")
 
     def identify(self) -> None:
+        print("identifying12334")
         self.logger.info("call identify cmd")
         self.__ensure_port_open()
         self.conn.write(b"\x23\x02\x00\x00\x50\x01")
@@ -121,25 +128,103 @@ class Waveplate:
             self.logger.warn("home command is not completed")
         return result
 
-    def getpos(self) -> bytes | None:
+    def auto_update_start(self) -> bytes | None:
+        self.logger.info("cal auto update start cmd")
+        self.__ensure_port_open()
+        msg = b"\x11\x00\x00\x50\x01"
+        self.conn.write(msg)
+        result = self.__wait_for_reply(b"\x00\x80\x81\x04", self.rotate_timeout)
+
+        self.logger.debug(f"auto_update_start result: {result}")
+        if result is None:
+            self.logger.warn("auto update start command is not completed")
+        return result
+
+    def auto_update_stop(self) -> bytes | None:
+        self.logger.info("cal auto update stop cmd")
+        self.__ensure_port_open()
+        msg = b"\x11\x00\x00\x50\x01"
+        self.conn.write(msg)
+        result = self.__wait_for_reply(b"\x00\x80\x81\x04", 1)
+
+        self.logger.debug(f"auto_update_stop result: {result}")
+        if result is not None:
+            self.logger.warn("auto update stop command is not completed")
+        return result
+
+    def disable_channel(self, chanid: int) -> bytes | None:
+        self.logger.info("call enable_channel cmd")
+        self.__ensure_port_open()
+
+        if chanid >= self.max_channel:
+            raise WavePlateInvalidMotorChannelError(
+                f"Invalid channel ID specified: {chanid}. it must be 0 in K10CR1/M"
+            )
+        msg = b"\x10\x02\x00\x02\x50\x01"
+        self.conn.write(msg)
+        time.sleep(0.1)
+
+    def enable_channel(self, chanid: int) -> bytes | None:
+        self.logger.info("call enable_channel cmd")
+        self.__ensure_port_open()
+
+        if chanid >= self.max_channel:
+            raise WavePlateInvalidMotorChannelError(
+                f"Invalid channel ID specified: {chanid}. It must be in 0 for K10CR1/M"
+            )
+
+        # MGMSG_MOD_SET_CHANENABLESTATE 0x0210
+        msg = b"\x10\x02\x00\x01\x50\x01"
+        self.conn.write(msg)
+        time.sleep(0.1)
+
+        # MGMSG_MOD_REG_CHANENABLESTATE 0x0211
+        msg = b"\x11\x02\x00\x01\x50\x01"
+        self.conn.write(msg)
+        result = self.__wait_for_reply(b"\x12\x02", 4)
+
+        # Waiting for GET_CHANENABLESTATE
+        # MGMSG_MOD_REG_CHANENABLESTATE 0x0212
+        self.logger.debug(f"enable channel result: {result}")
+        if result is None:
+            self.logger.warn("enable_channel command is not complete")
+        return result
+
+    def getpos(self) -> float | None:
         self.logger.info("call getpos cmd")
         self.__ensure_port_open()
 
         # MGMSG_MOT_REQ_STATUSUPDATE
-        # msg = b"\x80\x04\x00\x32\x01"
+        # msg = b"\x80\x04\x00\x50\x01"
         # msg = b"\x80\x04\x00\x50\x01"
 
         # 0x0011 MGMSG_HW_START_UPDATEMSGS
-        msg = b"\x11\x00\x00\x32\x01"
+        msg = b"\x11\x00\x00\x50\x01"
 
-        # msg = b'\x12\x00\x00\x32\x01'
+        # msg = b'\x12\x00\x00\x50\x01'
         self.conn.write(msg)
 
+        # result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
         result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
-        self.logger.debug(f"getpos result: {result}")
+
+        self.logger.debug(f"getpos all byte sequence results: {result}")
         if result is None:
             self.logger.warn("getpos command is not completed")
-        return result
+        else:
+            pos_seq = result[8:12]
+            self.logger.debug(f"getpos byte result: {pos_seq}")
+
+            encounter = int.from_bytes(pos_seq, byteorder="little")
+
+            # MG_MSG+HW_START_UPDATEMSGS
+            # 0x0011 MGMSG_HW_START_UPDATEMSGS
+            # msg = b"\x11\x00\x00\x50\x01"
+
+            # msg = b'\x12\x00\x00\x50\x01'
+            # self.conn.write(msg)
+            position = encounter / self.resolution
+            self.logger.info(f"getpos extracted result: {position}")
+            return position
 
     def rotate(self, degree: int | float) -> bytes | None:
         self.logger.info(f"call rotate cmd: degree={degree}")

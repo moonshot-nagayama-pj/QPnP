@@ -17,6 +17,12 @@ class WaveplateInvalidStepsError(Exception):
 
 
 class WaveplateInvalidDegreeError(Exception):
-    """Raised when a invalid degree specified. degree must be in a range 0-360"""
+    """Raised when an invalid degree specified. degree must be in a range 0-360"""
+
+    pass
+
+
+class WavePlateInvalidMotorChannelError(Exception):
+    """Raised when trying to access an invalid motor channel number. check max_channel"""
 
     pass
