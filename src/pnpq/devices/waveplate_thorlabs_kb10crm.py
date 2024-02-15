@@ -19,6 +19,8 @@ START_UPDATE_COMMAND = b"\x11\x00\x00\x00\x50\x01"
 STOP_UPDATE_COMMAND = b"\x12\x00\x00\x00\x50\x01"
 ROTATE_COMMAND = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
 ROTATE_REL_COMMAND = b"\x48\x04\x06\x00\xd0\x01\x00\x00"
+SET_ENB_CHANNEL_COMMAND = b"\x10\x02\x00\x01\x50\x01"
+REQ_ENB_CHANNEL_COMMAND = b"\x11\x02\x00\x01\x50\x01"
 
 
 class Waveplate:
@@ -180,12 +182,12 @@ class Waveplate:
             )
 
         # MGMSG_MOD_SET_CHANENABLESTATE 0x0210
-        msg = b"\x10\x02\x00\x01\x50\x01"
+        msg = SET_ENB_CHANNEL_COMMAND
         self.conn.write(msg)
         time.sleep(0.1)
 
         # MGMSG_MOD_REG_CHANENABLESTATE 0x0211
-        msg = b"\x11\x02\x00\x01\x50\x01"
+        msg = REQ_ENB_CHANNEL_COMMAND
         self.conn.write(msg)
         result = self.__wait_for_reply(b"\x12\x02", 4)
 
@@ -232,8 +234,9 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        msg = ROTATE_COMMAND
-        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        msg = ROTATE_COMMAND + (int(degree * self.resolution)).to_bytes(
+            4, byteorder="little"
+        )
         self.conn.write(msg)
 
         result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
@@ -249,8 +252,9 @@ class Waveplate:
         self.__ensure_less_than_max_steps(steps)
 
         # relative move
-        msg = ROTATE_REL_COMMAND
-        msg = msg + (int(steps)).to_bytes(4, byteorder="little", signed=True)
+        msg = ROTATE_REL_COMMAND + (int(steps)).to_bytes(
+            4, byteorder="little", signed=True
+        )
         self.conn.write(msg)
 
         result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
@@ -264,8 +268,7 @@ class Waveplate:
         self.__ensure_less_than_max_steps(steps)
 
         # relative
-        msg = ROTATE_REL_COMMAND
-        msg = msg + (int(steps)).to_bytes(4, byteorder="little")
+        msg = ROTATE_REL_COMMAND + (int(steps)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
         result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
@@ -278,8 +281,9 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        msg = ROTATE_REL_COMMAND
-        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        msg = ROTATE_REL_COMMAND + (int(degree * self.resolution)).to_bytes(
+            4, byteorder="little"
+        )
         self.conn.write(msg)
 
         result = self.__wait_for_reply(b"\x64\x04", 10)
@@ -292,8 +296,9 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        msg = ROTATE_COMMAND
-        msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
+        msg = ROTATE_COMMAND + (int(degree * self.resolution)).to_bytes(
+            4, byteorder="little"
+        )
         self.conn.write(msg)
         time.sleep(degree / 10)
 
