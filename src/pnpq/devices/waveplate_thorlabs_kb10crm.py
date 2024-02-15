@@ -200,7 +200,7 @@ class Waveplate:
         self.logger.info("call getpos cmd")
         self.__ensure_port_open()
 
-        # 0x0011 MGMSG_HW_START_UPDATEMSGS
+        # MGMSG_HW_START_UPDATEMSGS 0x0011
         msg = b"\x11\x00\x00\x00\x50\x01"
         self.conn.write(msg)
 
@@ -209,7 +209,7 @@ class Waveplate:
         self.logger.debug(f"getpos all byte sequence results: {result}")
 
         if not self.auto_update:
-            # 0x0012 MSMSG_HW_STOP_UPDATEMSGS
+            # MSMSG_HW_STOP_UPDATEMSGS 0x0012
             msg = b"\x12\x00\x00\x00\x50\x01"
             self.conn.write(msg)
 
