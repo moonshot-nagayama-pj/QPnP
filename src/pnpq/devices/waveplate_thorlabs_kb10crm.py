@@ -49,6 +49,7 @@ class Waveplate:
         self.rotate_timeout = 10
         self.home_timeout = 20
         self.max_channel = 1
+        self.auto_update = False
 
         if self.device_sn is not None:
             self.conn.port = get_available_port(self.device_sn)
@@ -131,25 +132,30 @@ class Waveplate:
     def auto_update_start(self) -> bytes | None:
         self.logger.info("cal auto update start cmd")
         self.__ensure_port_open()
-        msg = b"\x11\x00\x00\x50\x01"
+        msg = b"\x11\x00\x00\x00\x50\x01"
         self.conn.write(msg)
-        result = self.__wait_for_reply(b"\x00\x80\x81\x04", self.rotate_timeout)
+        result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
 
         self.logger.debug(f"auto_update_start result: {result}")
         if result is None:
             self.logger.warn("auto update start command is not completed")
+        else:
+            self.auto_update = True
         return result
 
     def auto_update_stop(self) -> bytes | None:
         self.logger.info("cal auto update stop cmd")
         self.__ensure_port_open()
-        msg = b"\x11\x00\x00\x50\x01"
+        msg = b"\x11\x00\x00\x00\x50\x01"
         self.conn.write(msg)
-        result = self.__wait_for_reply(b"\x00\x80\x81\x04", 1)
+        result = self.__wait_for_reply(b"\x81\x04", 1)
 
         self.logger.debug(f"auto_update_stop result: {result}")
         if result is not None:
             self.logger.warn("auto update stop command is not completed")
+        else:
+            self.auto_update = False
+
         return result
 
     def disable_channel(self, chanid: int) -> bytes | None:
@@ -194,20 +200,19 @@ class Waveplate:
         self.logger.info("call getpos cmd")
         self.__ensure_port_open()
 
-        # MGMSG_MOT_REQ_STATUSUPDATE
-        # msg = b"\x80\x04\x00\x50\x01"
-        # msg = b"\x80\x04\x00\x50\x01"
-
         # 0x0011 MGMSG_HW_START_UPDATEMSGS
-        msg = b"\x11\x00\x00\x50\x01"
-
-        # msg = b'\x12\x00\x00\x50\x01'
+        msg = b"\x11\x00\x00\x00\x50\x01"
         self.conn.write(msg)
 
-        # result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
         result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
 
         self.logger.debug(f"getpos all byte sequence results: {result}")
+
+        if not self.auto_update:
+            # 0x0012 MSMSG_HW_STOP_UPDATEMSGS
+            msg = b"\x12\x00\x00\x00\x50\x01"
+            self.conn.write(msg)
+
         if result is None:
             self.logger.warn("getpos command is not completed")
         else:
@@ -215,13 +220,6 @@ class Waveplate:
             self.logger.debug(f"getpos byte result: {pos_seq}")
 
             encounter = int.from_bytes(pos_seq, byteorder="little")
-
-            # MG_MSG+HW_START_UPDATEMSGS
-            # 0x0011 MGMSG_HW_START_UPDATEMSGS
-            # msg = b"\x11\x00\x00\x50\x01"
-
-            # msg = b'\x12\x00\x00\x50\x01'
-            # self.conn.write(msg)
             position = encounter / self.resolution
             self.logger.info(f"getpos extracted result: {position}")
             return position
@@ -232,7 +230,9 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+        # msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+        msg = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
+
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
