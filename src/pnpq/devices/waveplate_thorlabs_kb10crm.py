@@ -132,7 +132,7 @@ class Waveplate:
     def auto_update_start(self) -> bytes | None:
         self.logger.info("cal auto update start cmd")
         self.__ensure_port_open()
-        msg = b"\x11\x00\x00\x00\x50\x01"
+        msg = START_UPDATE_COMMAND
         self.conn.write(msg)
         result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
 
@@ -146,7 +146,7 @@ class Waveplate:
     def auto_update_stop(self) -> bytes | None:
         self.logger.info("cal auto update stop cmd")
         self.__ensure_port_open()
-        msg = b"\x11\x00\x00\x00\x50\x01"
+        msg = STOP_UPDATE_COMMAND
         self.conn.write(msg)
         result = self.__wait_for_reply(b"\x81\x04", 1)
 
