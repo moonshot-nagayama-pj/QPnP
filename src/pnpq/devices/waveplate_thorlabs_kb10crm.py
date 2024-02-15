@@ -10,13 +10,15 @@ from pnpq.errors import (
 from pnpq.utils import get_available_port
 
 HW_SET_INFO_COMMAND = b"\x05\x00\x00\x00\x50\x01"
-
 HOME_REQ_COMMAND = (
     b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
 )
-# HOME_SET_COMMAND = b"\x41\x04\x00\x50\x01"
-HOME_SET_COMMAND = b"\x06\x00\x00\x00\x50\x01"
+HOME_SET_COMMAND = b"\x41\x04\x01\x00\x50\x01"
 HOME_MOVE_COMMAND = b"\x43\x04\x01\x00\x50\x01"
+START_UPDATE_COMMAND = b"\x11\x00\x00\x00\x50\x01"
+STOP_UPDATE_COMMAND = b"\x12\x00\x00\x00\x50\x01"
+ROTATE_COMMAND = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
+ROTATE_REL_COMMAND = b"\x48\x04\x06\x00\xd0\x01\x00\x00"
 
 
 class Waveplate:
@@ -98,13 +100,11 @@ class Waveplate:
             retries -= 1
 
     def connect(self) -> None:
-        print("test")
         self.logger.info("connecting...")
         self.conn.open()
         self.logger.info("connected")
 
     def identify(self) -> None:
-        print("identifying12334")
         self.logger.info("call identify cmd")
         self.__ensure_port_open()
         self.conn.write(b"\x23\x02\x00\x00\x50\x01")
@@ -159,7 +159,7 @@ class Waveplate:
         return result
 
     def disable_channel(self, chanid: int) -> bytes | None:
-        self.logger.info("call enable_channel cmd")
+        self.logger.info("call disable_channel cmd")
         self.__ensure_port_open()
 
         if chanid >= self.max_channel:
@@ -196,21 +196,23 @@ class Waveplate:
             self.logger.warn("enable_channel command is not complete")
         return result
 
+    def device_resolution(self) -> int:
+        return self.resolution
+
     def getpos(self) -> float | None:
         self.logger.info("call getpos cmd")
         self.__ensure_port_open()
 
         # MGMSG_HW_START_UPDATEMSGS 0x0011
-        msg = b"\x11\x00\x00\x00\x50\x01"
+        msg = START_UPDATE_COMMAND
         self.conn.write(msg)
 
         result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
-
         self.logger.debug(f"getpos all byte sequence results: {result}")
 
         if not self.auto_update:
             # MSMSG_HW_STOP_UPDATEMSGS 0x0012
-            msg = b"\x12\x00\x00\x00\x50\x01"
+            msg = STOP_UPDATE_COMMAND
             self.conn.write(msg)
 
         if result is None:
@@ -219,10 +221,10 @@ class Waveplate:
             pos_seq = result[8:12]
             self.logger.debug(f"getpos byte result: {pos_seq}")
 
-            encounter = int.from_bytes(pos_seq, byteorder="little")
-            position = encounter / self.resolution
-            self.logger.info(f"getpos extracted result: {position}")
-            return position
+            steps = int.from_bytes(pos_seq, byteorder="little")
+            position = steps / self.resolution
+            self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
+            return steps
 
     def rotate(self, degree: int | float) -> bytes | None:
         self.logger.info(f"call rotate cmd: degree={degree}")
@@ -230,9 +232,7 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        # msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
-        msg = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
-
+        msg = ROTATE_COMMAND
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
@@ -249,7 +249,7 @@ class Waveplate:
         self.__ensure_less_than_max_steps(steps)
 
         # relative move
-        msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+        msg = ROTATE_REL_COMMAND
         msg = msg + (int(steps)).to_bytes(4, byteorder="little", signed=True)
         self.conn.write(msg)
 
@@ -264,7 +264,7 @@ class Waveplate:
         self.__ensure_less_than_max_steps(steps)
 
         # relative
-        msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+        msg = ROTATE_REL_COMMAND
         msg = msg + (int(steps)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
@@ -278,7 +278,7 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        msg = b"\x48\x04\x06\x00\xb2\x01\x00\x00"
+        msg = ROTATE_REL_COMMAND
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
@@ -292,7 +292,7 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        msg = b"\x53\x04\x06\x00\xb2\x01\x00\x00"
+        msg = ROTATE_COMMAND
         msg = msg + (int(degree * self.resolution)).to_bytes(4, byteorder="little")
         self.conn.write(msg)
         time.sleep(degree / 10)
