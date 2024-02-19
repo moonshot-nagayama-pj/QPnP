@@ -131,7 +131,7 @@ class Waveplate:
         self.conn.write(b"\x23\x02\x00\x00\x50\x01")
         # self.conn.write(b"\x23\x02\x00\x00\x32\x01")
 
-    def async_home(self) -> bytes | None:
+    async def __async_home(self) -> bytes | None:
         self.logger.info("call home cmd")
         self.__ensure_port_open()
 
