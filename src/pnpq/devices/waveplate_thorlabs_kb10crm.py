@@ -278,7 +278,9 @@ class Waveplate:
         )
         self.conn.write(msg)
 
-        result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
+        result = self.__async_wait_for_reply(b"\x64\x04", self.rotate_timeout)
+
+        # result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
 
     def rotate(self, degree: int | float) -> bytes | None:
         self.logger.info(f"call rotate cmd: degree={degree}")
@@ -355,6 +357,7 @@ class Waveplate:
         time.sleep(degree / 10)
 
     def custom_home(self, degree):
+        """Customized home (home+offset)"""
         self.logger.info(f"call custom_home cmd: degree={degree}")
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
