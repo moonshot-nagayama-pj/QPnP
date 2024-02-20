@@ -8,15 +8,17 @@ print("hello world")
 # wp = Waveplate(serial_number='00AAABBB')
 # wp = Waveplate()
 # wp.connect()
-print(Waveplate())
+# print(Waveplate())
 
-print(Switch())
+# print(Switch())
 # sw = Switch()
 
-print(OpticalDelayLine("/dev/test"))
+
+# print(OpticalDelayLine("/dev/test"))
 # print(OdlThorlabs())
-tlodl = OdlThorlabs("/dev/test2")
-# tlodl.connect()
+# tlodl = OdlThorlabs("/dev/ttyUSB0")
+tlodl = OdlThorlabs(serial_number="28252054")
+tlodl.connect()
 
 
 print(OdlOzOptics)
