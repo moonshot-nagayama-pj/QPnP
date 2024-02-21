@@ -125,7 +125,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         if not forward_complete:
             self.logger.error(f"step forward command is not completed")
-            raise OdlMoveNotComepleted(
+            raise OdlMoveNotCompeleted(
                 f"ODL({self}: No response is received for step_forward command)"
             )
 
@@ -145,7 +145,7 @@ class OdlThorlabs(OpticalDelayLine):
         backward_complete = self.__waitForReply(b"\x64\x04", self.move_timeout)
         if not backward_complete:
             self.logger.error(f"step backward command is not completed")
-            raise OdlMoveNotComepleted(
+            raise OdlMoveNotCompeleted(
                 f"ODL{self}: No response is received for step_backward command"
             )
 
