@@ -11,18 +11,18 @@ from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import (
     DevicePortNotFoundError,
     DeviceDisconnectedError,
-    OdlMoveNotComepleted,
+    OdlMoveNotCompeleted,
     OdlHomeNotCompleted,
     OdlGetPosNotCompleted,
     OdlMoveOutofRangeError,
 )
 
-ENABLE_CHANNEL_COMMAND = b"\x10\x02\x01\x01\x50\x01"
-START_UPDATE_COMMAND = b"\x11\x00\x00\x00\x50\x01"
-STOP_UPDATE_COMMAND = b"\x12\x00\x00\x00\x50\x01"
 ODL_HOME_COMMAND = b"\x43\x04\x01\x00\x50\x01"
-ODL_IDENTIFY_COMMAND = b"\x23\x02\x00\x00\x50\x01"
 ODL_MOVE_COMMAND = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
+STOP_UPDATE_COMMAND = b"\x12\x00\x00\x00\x50\x01"
+START_UPDATE_COMMAND = b"\x11\x00\x00\x00\x50\x01"
+ODL_IDENTIFY_COMMAND = b"\x23\x02\x00\x00\x50\x01"
+ENABLE_CHANNEL_COMMAND = b"\x10\x02\x01\x01\x50\x01"
 ODL_RELATIVE_MOVE_COMMAND = b"\x48\x04\x06\x00\xd0\x01\x00\x00"
 
 
@@ -108,7 +108,7 @@ class OdlThorlabs(OpticalDelayLine):
         move_complete = self.__waitForReply(b"\x64\04", self.move_timeout)
         if not move_complete:
             self.logger.error(f"move command is not completed")
-            raise OdlMoveNotComepleted(
+            raise OdlMoveNotCompeleted(
                 f"ODL({self}): No moved_completed response has been received"
             )
 
@@ -146,24 +146,48 @@ class OdlThorlabs(OpticalDelayLine):
         if not backward_complete:
             self.logger.error(f"step backward command is not completed")
             raise OdlMoveNotComepleted(
-                f"ODL{self}: No response id received for step_backward command"
+                f"ODL{self}: No response is received for step_backward command"
             )
+
+    def auto_update_start(self) -> bytes | None:
+        self.logger.info("cal auto update start cmd")
+        self.__ensure_port_open()
+        msg = START_UPDATE_COMMAND
+        self.conn.write(msg)
+        result = self.__waitForReply(b"\x81\x04", self.move_timeout)
+
+        self.logger.debug(f"auto_update_start result: {result}")
+        if result is None:
+            self.logger.warn("auto update start command is not completed")
+        else:
+            self.auto_update = True
+        return result
+
+    def auto_update_stop(self) -> bytes | None:
+        self.logger.info("cal auto update stop cmd")
+        self.__ensure_port_open()
+        msg = STOP_UPDATE_COMMAND
+        self.conn.write(msg)
+        result = self.__waitForReply(b"\x81\x04", 1)
+
+        self.logger.debug(f"auto_update_stop result: {result}")
+        if result is not None:
+            self.logger.warn("auto update stop command is not completed")
+        else:
+            self.auto_update = False
+
+        return result
 
     def getpos(self) -> int | None:
         self.logger.info("call getpos cmd")
         self.__ensure_port_open()
-
-        # MGMSG_HW_START_UPDATEMSGS 0x0011
         self.conn.write(START_UPDATE_COMMAND)
 
-        self.__waitForReply
         result = self.__waitForReply(b"\x81\x04", self.move_timeout)
         self.logger.debug(f"getpos all byte sequence results: {result}")
 
         if not self.auto_update:
-            # MSMSG_HW_STOP_UPDATEMSGS 0x0012
-            msg = STOP_UPDATE_COMMAND
-            self.conn.write(msg)
+            self.conn.write(STOP_UPDATE_COMMAND)
 
         if result is None:
             self.logger.error("getpos command is not completed")
