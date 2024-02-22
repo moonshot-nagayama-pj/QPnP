@@ -17,6 +17,12 @@ from pnpq.errors import (
     OdlMoveOutofRangeError,
 )
 
+HOME_REQ_COMMAND = (
+    b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
+)
+HOME_SET_COMMAND = b"\x41\x04\x01\x00\x50\x01"
+HOME_MOVE_COMMAND = b"\x43\x04\x01\x00\x50\x01"
+
 ODL_HOME_COMMAND = b"\x43\x04\x01\x00\x50\x01"
 ODL_MOVE_COMMAND = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
 STOP_UPDATE_COMMAND = b"\x12\x00\x00\x00\x50\x01"
@@ -207,7 +213,16 @@ class OdlThorlabs(OpticalDelayLine):
     def home(self) -> bytes | None:
         self.__ensure_port_open()
 
-        self.conn.write(ODL_HOME_COMMAND)
+        self.conn.write(HOME_REQ_COMMAND)
+        time.sleep(0.5)
+
+        self.conn.write(HOME_SET_COMMAND)
+        time.sleep(0.5)
+
+        self.conn.write(HOME_MOVE_COMMAND)
+        time.sleep(0.5)
+
+        # self.conn.write(ODL_HOME_COMMAND)
 
         homed = self.__waitForReply(b"\x44\x04", self.home_timeout)
         self.logger.debug(f"home result: {homed}")
