@@ -11,7 +11,7 @@ from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import (
     DevicePortNotFoundError,
     DeviceDisconnectedError,
-    OdlMoveNotCompeleted,
+    OdlMoveNotCompleted,
     OdlHomeNotCompleted,
     OdlGetPosNotCompleted,
     OdlMoveOutofRangeError,
@@ -114,7 +114,7 @@ class OdlThorlabs(OpticalDelayLine):
         move_complete = self.__waitForReply(b"\x64\04", self.move_timeout)
         if not move_complete:
             self.logger.error(f"move command is not completed")
-            raise OdlMoveNotCompeleted(
+            raise OdlMoveNotCompleted(
                 f"ODL({self}): No moved_completed response has been received"
             )
 
@@ -131,7 +131,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         if not forward_complete:
             self.logger.error(f"step forward command is not completed")
-            raise OdlMoveNotCompeleted(
+            raise OdlMoveNotCompleted(
                 f"ODL({self}: No response is received for step_forward command)"
             )
 

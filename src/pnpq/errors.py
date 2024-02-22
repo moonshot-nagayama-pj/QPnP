@@ -58,7 +58,7 @@ class WaveplateInvalidMotorChannelError(Exception):
     pass
 
 
-class OdlMoveNotCompeleted(Exception):
+class OdlMoveNotCompleted(Exception):
     """Raised when Move complete response has not been received from ODL device"""
 
     pass
