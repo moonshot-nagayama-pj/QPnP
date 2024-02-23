@@ -31,6 +31,8 @@ ODL_IDENTIFY_COMMAND = b"\x23\x02\x00\x00\x50\x01"
 ENABLE_CHANNEL_COMMAND = b"\x10\x02\x01\x01\x50\x01"
 ODL_RELATIVE_MOVE_COMMAND = b"\x48\x04\x06\x00\xd0\x01\x00\x00"
 
+ODL_HOMD_POSITION = 0
+
 
 class OdlThorlabs(OpticalDelayLine):
     def __init__(
@@ -54,6 +56,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.name = "Thorlabs"
         self.model = "KBD101 driver DDS100/M Stage"
         self.logger = logging.getLogger(f"{self}")
+        self.curr_pos_steps = None
 
     def __ensure_port_open(self) -> None:
         if not self.conn.is_open:
@@ -61,22 +64,22 @@ class OdlThorlabs(OpticalDelayLine):
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def __ensure_device_in_range(self, steps: int) -> None:
-        if (
-            steps > self.maxmove * self.resolution
-            or steps < self.minmove * self.resolution
-        ):
+        max_threshold = self.maxmove * self.resolution
+        min_threshold = self.maxmove * self.resolution
+
+        if steps > max_threshold or steps < min_threshold:
             raise OdlMoveOutofRangeError(
                 f"Move request for device{self} is out of range min({self.minmove}) - max({self.maxmove})"
             )
 
     def connect(self) -> None:
         if self.conn.is_open:
-            self.logger.warn("ODL ({self}) serial connection is already open")
+            self.logger.warning("ODL ({self}) serial connection is already open")
         self.conn.open()
 
         if not self.conn.is_open:
             raise DeviceDisconnectedError(f"ODL device is disconneced")
-        self.logger.info(f"({self}): Connecting to Thorlabs ODL mdoule")
+        self.logger.info(f"({self}): Connecting to Thorlabs ODL module")
         # Enable Channel ID (0)
         self.conn.write(ENABLE_CHANNEL_COMMAND)
 
@@ -102,37 +105,49 @@ class OdlThorlabs(OpticalDelayLine):
             retries -= 1
 
     def move(self, move_mm: int):
-
+        move_steps = move_mm * self.resolution
         self.__ensure_port_open()
-        self.__ensure_device_in_range(move_mm * self.resolution)
+        self.__ensure_device_in_range(move_steps)
 
-        msg = ODL_MOVE_COMMAND + (move_mm * self.resolution).to_bytes(
-            4, byteorder="little"
-        )
+        msg = ODL_MOVE_COMMAND + (move_steps).to_bytes(4, byteorder="little")
         self.conn.write(msg)
 
-        move_complete = self.__waitForReply(b"\x64\04", self.move_timeout)
-        if not move_complete:
+        move_result = self.__waitForReply(b"\x64\04", self.move_timeout)
+        if not move_result:
             self.logger.error(f"move command is not completed")
             raise OdlMoveNotCompleted(
                 f"ODL({self}): No moved_completed response has been received"
             )
+        self.curr_pos_steps = move_steps
 
     def step_forward(self, steps):
         self.__ensure_port_open()
         self.__ensure_device_in_range(steps)
+        self.__ensure_final_in_range(self.curr_pos_steps, steps)
 
         msg = ODL_RELATIVE_MOVE_COMMAND + (int(steps)).to_bytes(
             4, byteorder="little", signed=True
         )
         self.conn.write(msg)
 
-        forward_complete = self.__waitForReply(b"\x64\x04", self.move_timeout)
+        forward_result = self.__waitForReply(b"\x64\x04", self.move_timeout)
 
-        if not forward_complete:
+        if not forward_result:
             self.logger.error(f"step forward command is not completed")
             raise OdlMoveNotCompleted(
                 f"ODL({self}: No response is received for step_forward command)"
+            )
+        self.curr_pos_steps += steps
+
+    def __ensure_final_in_range(self, current_position: int, steps: int):
+
+        max_threshold = self.maxmove * self.resolution
+        min_threshold = self.maxmove * self.resolution
+
+        next_position = current_position + steps
+        if next_position > max_threshold or next_position < min_threshold:
+            raise OdlMoveOutofRangeError(
+                f"The relative change position request for device{self} is out of range min({self.minmove}) - max({self.maxmove})"
             )
 
     def step_backward(self, steps):
@@ -141,6 +156,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         # negate steps
         steps = -steps
+        self.__ensure_final_in_range(self.curr_pos_steps, steps)
 
         # relative move
         msg = ODL_RELATIVE_MOVE_COMMAND + (int(steps)).to_bytes(
@@ -148,12 +164,13 @@ class OdlThorlabs(OpticalDelayLine):
         )
         self.conn.write(msg)
 
-        backward_complete = self.__waitForReply(b"\x64\x04", self.move_timeout)
-        if not backward_complete:
+        backward_result = self.__waitForReply(b"\x64\x04", self.move_timeout)
+        if not backward_result:
             self.logger.error(f"step backward command is not completed")
-            raise OdlMoveNotCompeleted(
+            raise OdlMoveNotCompleted(
                 f"ODL{self}: No response is received for step_backward command"
             )
+        self.curr_pos_steps += steps
 
     def auto_update_start(self) -> bytes | None:
         self.logger.info("cal auto update start cmd")
@@ -164,7 +181,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         self.logger.debug(f"auto_update_start result: {result}")
         if result is None:
-            self.logger.warn("auto update start command is not completed")
+            self.logger.warning("auto update start command is not completed")
         else:
             self.auto_update = True
         return result
@@ -178,10 +195,9 @@ class OdlThorlabs(OpticalDelayLine):
 
         self.logger.debug(f"auto_update_stop result: {result}")
         if result is not None:
-            self.logger.warn("auto update stop command is not completed")
+            self.logger.warning("auto update stop command is not completed")
         else:
             self.auto_update = False
-
         return result
 
     def getpos(self) -> int | None:
@@ -201,14 +217,14 @@ class OdlThorlabs(OpticalDelayLine):
                 f"ODL{self}: No update response has been received for determining the position"
             )
 
-        else:
-            pos_seq = result[8:12]
-            self.logger.debug(f"getpos byte result: {pos_seq}")
+        pos_seq = result[8:12]
+        self.logger.debug(f"getpos byte result: {pos_seq}")
 
-            steps = int.from_bytes(pos_seq, byteorder="little")
-            position = steps / self.resolution
-            self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
-            return steps
+        steps = int.from_bytes(pos_seq, byteorder="little")
+        position = steps / self.resolution
+        self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
+        self.curr_pos_steps = steps
+        return steps
 
     def home(self) -> bytes | None:
         self.__ensure_port_open()
@@ -229,6 +245,7 @@ class OdlThorlabs(OpticalDelayLine):
         if homed is None:
             self.logger.error("home command is not completed in ODL")
             raise OdlHomeNotCompleted(f"Odl{self}: Homed response can not be received")
+        self.curr_pos_steps = ODL_HOMD_POSITION
         return homed
 
 
