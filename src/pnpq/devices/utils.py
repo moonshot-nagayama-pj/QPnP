@@ -1,0 +1,28 @@
+from serial.tools.list_ports import comports as list_comports
+import logging
+
+logger = logging.getLogger("utils")
+
+USB_HUB_iVENDOR = "2109"
+USB_HUB_iPROFUCT = ["0817", "2817"]
+
+
+def get_available_port(device_serial_number: str) -> str | None:
+    logger.debug(f"get_available_port(serial_number: {device_serial_number})")
+    available_ports = list_comports()
+    for port in available_ports:
+        if port.serial_number == device_serial_number:
+            logger.debug(f"port found: {port.device}")
+            return port.device
+    return None
+
+
+def check_usb_hub_connected() -> bool | None:
+    logger.debug(f"check_usb_hub_connected")
+    available_ports = list_comports()
+    for port in available_ports:
+        if port.vid == USB_HUB_iVENDOR:
+            if port.pid in USB_HUB_iPROFUCT:
+                logger.debug(f"compatible USB HUB{port} is found")
+                return True
+    return False

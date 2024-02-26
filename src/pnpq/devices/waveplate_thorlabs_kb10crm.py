@@ -13,7 +13,10 @@ from pnpq.errors import (
     WaveplateEnableChannelError,
     WaveplateInvalidMotorChannelError,
 )
-from pnpq.utils import get_available_port
+from pnpq.utils import (
+    get_available_port,
+    check_usb_hub_connected,
+)
 
 HW_SET_INFO_COMMAND = b"\x05\x00\x00\x00\x50\x01"
 HOME_REQ_COMMAND = (
@@ -61,7 +64,9 @@ class Waveplate:
         self.home_timeout = 20
         self.max_channel = 1
         self.auto_update = False
+        self.hub = check_usb_hub_connected()
 
+        self.logger = logging.getLogger(f"USB_HUB{self.hub}")
         if self.device_sn is not None:
             self.conn.port = get_available_port(self.device_sn)
             if self.conn.port is None:
