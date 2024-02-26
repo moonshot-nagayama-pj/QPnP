@@ -4,8 +4,14 @@ from serial import Serial
 from pnpq.errors import (
     DevicePortNotFoundError,
     DeviceDisconnectedError,
+    WavePlateMoveNotCompleted,
+    WavePlateHomedNotCompleted,
+    WavePlateGetPosNotCompleted,
+    WavePlateCustomRotateError,
     WaveplateInvalidStepsError,
     WaveplateInvalidDegreeError,
+    WaveplateEnableChannelError,
+    WaveplateInvalidMotorChannelError,
 )
 from pnpq.utils import get_available_port
 
@@ -15,6 +21,7 @@ HOME_REQ_COMMAND = (
 )
 HOME_SET_COMMAND = b"\x41\x04\x01\x00\x50\x01"
 HOME_MOVE_COMMAND = b"\x43\x04\x01\x00\x50\x01"
+IDENTIFY_COMMAND = b"\x23\x02\x00\x00\x50\x01"
 START_UPDATE_COMMAND = b"\x11\x00\x00\x00\x50\x01"
 STOP_UPDATE_COMMAND = b"\x12\x00\x00\x00\x50\x01"
 ROTATE_COMMAND = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
@@ -109,8 +116,7 @@ class Waveplate:
     def identify(self) -> None:
         self.logger.info("call identify cmd")
         self.__ensure_port_open()
-        self.conn.write(b"\x23\x02\x00\x00\x50\x01")
-        # self.conn.write(b"\x23\x02\x00\x00\x32\x01")
+        self.conn.write(IDENTIFY_COMMAND)
 
     def home(self) -> bytes | None:
         self.logger.info("call home cmd")
@@ -128,7 +134,10 @@ class Waveplate:
         result = self.__wait_for_reply(b"\x44\x04", 20)
         self.logger.debug(f"home result: {result}")
         if result is None:
-            self.logger.warn("home command is not completed")
+            self.logger.error("home command is not completed")
+            raise WavePlateHomedNotCompleted(
+                f"Waveplate{self}: Homed response has not been received"
+            )
         return result
 
     def auto_update_start(self) -> bytes | None:
@@ -195,13 +204,14 @@ class Waveplate:
         # MGMSG_MOD_REG_CHANENABLESTATE 0x0212
         self.logger.debug(f"enable channel result: {result}")
         if result is None:
-            self.logger.warn("enable_channel command is not complete")
+            self.logger.error("enable_channel command is not complete")
+            raise WaveplateEnableChannelError(f"Waveplate{self} enable channel failed")
         return result
 
     def device_resolution(self) -> int:
         return self.resolution
 
-    def getpos(self) -> float | None:
+    def getpos(self) -> int | None:
         self.logger.info("call getpos cmd")
         self.__ensure_port_open()
 
@@ -218,7 +228,11 @@ class Waveplate:
             self.conn.write(msg)
 
         if result is None:
-            self.logger.warn("getpos command is not completed")
+            self.logger.error("getpos command is not completed")
+            raise WavePlateGetPosNotCompleted(
+                f"No update response has been received for determining the position"
+            )
+
         else:
             pos_seq = result[8:12]
             self.logger.debug(f"getpos byte result: {pos_seq}")
@@ -241,7 +255,11 @@ class Waveplate:
 
         result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
         if result is None:
-            self.logger.warn("rotate command is not completed")
+            self.logger.error("rotate command is not completed")
+
+            raise WavePlateMoveNotCompleted(
+                f"Waveplate({self}):Rotaion:({degree}) failed. No response has been received"
+            )
         return result
 
     def step_backward(self, steps: int) -> bytes | None:
@@ -259,7 +277,11 @@ class Waveplate:
 
         result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
         if result is None:
-            self.logger.warn("step_backward command is not completed")
+            self.logger.error("step_backward command is not completed")
+            raise WavePlateMoveNotCompleted(
+                f"Waveplate({self}):Backward:({steps}) failed. No response has been received"
+            )
+
         return result
 
     def step_forward(self, steps: int) -> bytes | None:
@@ -273,7 +295,12 @@ class Waveplate:
 
         result = self.__wait_for_reply(b"\x64\x04", self.rotate_timeout)
         if result is None:
-            self.logger.warn("step_forward command is not completed")
+            self.logger.error("step_forward command is not completed")
+
+            raise WavePlateMoveNotCompleted(
+                f"Waveplate({self}):Forward:({steps}) failed. No response has been received"
+            )
+
         return result
 
     def rotate_relative(self, degree) -> bytes | None:
@@ -288,19 +315,12 @@ class Waveplate:
 
         result = self.__wait_for_reply(b"\x64\x04", 10)
         if result is None:
-            self.logger.warn("rotate command is not completed")
+            self.logger.error("rotate command is not completed")
+            raise WavePlateMoveNotCompleted(
+                f"Waveplate({self}):Rotate Relative:({degree}) failed. No response has been received"
+            )
+
         return result
-
-    def rotate_absolute(self, degree):
-        self.logger.info(f"call rotate_absolute cmd: degree={degree}")
-        self.__ensure_port_open()
-        self.__ensure_valid_degree(degree)
-
-        msg = ROTATE_COMMAND + (int(degree * self.resolution)).to_bytes(
-            4, byteorder="little"
-        )
-        self.conn.write(msg)
-        time.sleep(degree / 10)
 
     def custom_home(self, degree):
         self.logger.info(f"call custom_home cmd: degree={degree}")
@@ -315,7 +335,12 @@ class Waveplate:
         """Rotattion with customized home!"""
 
         if not self.relative_home:
-            raise Exception("No relative homing is defined for rotation!")
+            self.logger.error(
+                "relative_home parameter should be defined befor custom rotation"
+            )
+            raise WavePlateCustomRotateError(
+                f"Waveplate({self}) relative_home can not be completed"
+            )
 
         self.rotate(degree + self.relative_home)
 
