@@ -17,21 +17,14 @@ from pnpq.errors import (
     OdlMoveOutofRangeError,
 )
 
-# HOME_REQ_COMMAND = (
-#    b"\x40\x04\x0e\x00\xb2\x01\x00\x00\x00\x00\x00\x00\xa4\xaa\xbc\x08\x00\x00\x00\x00"
-# )
-# HOME_SET_COMMAND = b"\x41\x04\x01\x00\x50\x01"
 ODL_HOME_COMMAND = b"\x43\x04\x01\x00\x50\x01"
 ODL_MOVE_COMMAND = b"\x53\x04\x06\x00\xd0\x01\x00\x00"
-# ODL_MOVE_COMMAND = b"\x53\x04\x01\x00\x50\x01"
-
 STOP_UPDATE_COMMAND = b"\x12\x00\x00\x00\x50\x01"
 START_UPDATE_COMMAND = b"\x11\x00\x00\x00\x50\x01"
 ODL_IDENTIFY_COMMAND = b"\x23\x02\x00\x00\x50\x01"
 ENABLE_CHANNEL_SET_COMMAND = b"\x10\x02\x01\x01\x50\x01"
 ENABLE_CHANNEL_GET_COMMAND = b"\x11\x02\x01\x00\x50\x01"
 ODL_RELATIVE_MOVE_COMMAND = b"\x48\x04\x06\x00\xd0\x01\x00\x00"
-
 MGMSG_MOT_REQ_USTATUSUPDATE = b"\x90\x04\x01\x00\x50\x01"
 MGMSG_MOT_GET_USTATUSUPDATE = b"\x91\x04"
 
@@ -190,9 +183,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.logger.info("cal auto update start cmd")
         self.__ensure_port_open()
         msg = START_UPDATE_COMMAND
-        # msg = MGMSG_MOT_REQ_USTATUSUPDATE
         self.conn.write(msg)
-        # result = self.__waitForReply(b"\x81\x04", self.move_timeout)
         result = self.__waitForReply(b"\x91\x04", self.move_timeout)
 
         self.logger.debug(f"auto_update_start result: {result}")
@@ -207,7 +198,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.__ensure_port_open()
         msg = STOP_UPDATE_COMMAND
         self.conn.write(msg)
-        result = self.__waitForReply(b"\x81\x04", 1)
+        result = self.__waitForReply(b"\x91\x04", 2)
 
         self.logger.debug(f"auto_update_stop result: {result}")
         if result is not None:
@@ -219,13 +210,9 @@ class OdlThorlabs(OpticalDelayLine):
     def getpos(self) -> int | None:
         self.logger.info("call getpos cmd")
         self.__ensure_port_open()
-        # self.conn.write(START_UPDATE_COMMAND)
         self.conn.write(MGMSG_MOT_REQ_USTATUSUPDATE)
         result = self.__waitForReply(b"\x91\x04", self.move_timeout)
         self.logger.debug(f"getpos all byte sequence results: {result}")
-
-        # if not self.auto_update:
-        #    self.conn.write(STOP_UPDATE_COMMAND)
 
         if result is None:
             self.logger.error("getpos command is not completed")
