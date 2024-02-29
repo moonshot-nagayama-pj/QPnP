@@ -30,11 +30,12 @@ ODL_RELATIVE_MOVE_COMMAND = b"\x48\x04\x06\x00\xd0\x01\x00\x00"
 # https://www.thorlabs.com/Software/Motion%20Control/APT_Communications_Protocol.pdf
 MGMSG_MOT_REQ_USTATUSUPDATE = b"\x90\x04\x01\x00\x50\x01"
 MGMSG_MOT_GET_USTATUSUPDATE = b"\x91\x04"
-
-ODL_HOMD_POSITION: int = 0
+ODL_HOMD_POSITION = 0
 
 
 class OdlThorlabs(OpticalDelayLine):
+    currrent_steps: int | None
+
     def __init__(
         self,
         serial_port: str | None = None,
@@ -56,7 +57,6 @@ class OdlThorlabs(OpticalDelayLine):
         self.name = "Thorlabs"
         self.model = "KBD101 driver DDS100/M Stage"
         self.logger = logging.getLogger(f"{self}")
-        self.curr_pos_steps: int | None
 
     def __ensure_port_open(self) -> None:
         if not self.conn.is_open:
@@ -89,11 +89,11 @@ class OdlThorlabs(OpticalDelayLine):
         if enable_channel_result is None:
             self.logger.error(f"can not enable odl channel")
 
-    def identify(self):
+    def identify(self) -> None:
         self.__ensure_port_open()
         self.conn.write(ODL_IDENTIFY_COMMAND)
 
-    def __wait_for_reply(self, sequence, timeout):
+    def __wait_for_reply(self, sequence: bytes | None, timeout: int) -> bytes | None:
         retries = timeout
         result = b""
         while retries > 0:
@@ -110,7 +110,7 @@ class OdlThorlabs(OpticalDelayLine):
             time.sleep(1)
             retries -= 1
 
-    def move(self, move_mm: int):
+    def move(self, move_mm: int) -> None:
         move_steps = move_mm * self.resolution
         self.logger.debug(
             f"move command recieved: move_mm:({move_mm})->move_steps:({move_steps})"
@@ -127,14 +127,13 @@ class OdlThorlabs(OpticalDelayLine):
             raise OdlMoveNotCompleted(
                 f"ODL({self}): No moved_completed response has been received"
             )
-        self.curr_pos_steps = move_steps
+        self.currrent_steps = move_steps
+        self.logger.debug(f"Move completed position_steps({self.currrent_steps})!")
 
-        self.logger.debug(f"Move completed position_steps({self.curr_pos_steps})!")
-
-    def step_forward(self, steps):
+    def step_forward(self, steps: int) -> None:
         self.__ensure_port_open()
         self.__ensure_steps_in_range(steps)
-        self.__ensure_final_in_range(self.curr_pos_steps, steps)
+        self.__ensure_final_in_range(self.currrent_steps, steps)
 
         msg = ODL_RELATIVE_MOVE_COMMAND + (int(steps)).to_bytes(
             4, byteorder="little", signed=True
@@ -147,26 +146,27 @@ class OdlThorlabs(OpticalDelayLine):
             raise OdlMoveNotCompleted(
                 f"ODL({self}: No response is received for step_forward command)"
             )
-        self.curr_pos_steps += steps
+        self.currrent_steps += steps
 
-    def __ensure_final_in_range(self, current_position: int, steps: int):
+    def __ensure_final_in_range(self, current_position: int, steps: int) -> None:
 
         max_threshold = self.maxmove * self.resolution
         min_threshold = self.maxmove * self.resolution
 
         next_position = current_position + steps
-        if next_position > max_threshold or next_position < min_threshold:
-            raise OdlMoveOutofRangeError(
-                f"The relative change position request for device{self} is out of range min({self.minmove}) - max({self.maxmove})"
-            )
+        if min_threshold <= next_position <= max_threshold:
+            return
+        raise OdlMoveOutofRangeError(
+            f"The relative change position request for device{self} is out of range min({self.minmove}) - max({self.maxmove})"
+        )
 
-    def step_backward(self, steps):
+    def step_backward(self, steps: int) -> None:
         self.__ensure_port_open()
         self.__ensure_steps_in_range(steps)
 
         # negate steps
         steps = -steps
-        self.__ensure_final_in_range(self.curr_pos_steps, steps)
+        self.__ensure_final_in_range(self.currrent_steps, steps)
 
         # relative move
         msg = ODL_RELATIVE_MOVE_COMMAND + (int(steps)).to_bytes(
@@ -180,7 +180,7 @@ class OdlThorlabs(OpticalDelayLine):
             raise OdlMoveNotCompleted(
                 f"ODL{self}: No response is received for step_backward command"
             )
-        self.curr_pos_steps += steps
+        self.currrent_steps += steps
 
     def auto_update_start(self) -> bytes | None:
         self.logger.info("cal auto update start cmd")
@@ -229,7 +229,7 @@ class OdlThorlabs(OpticalDelayLine):
         steps = int.from_bytes(pos_seq, byteorder="little")
         position = steps / self.resolution
         self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
-        self.curr_pos_steps = steps
+        self.currrent_steps = steps
         return steps
 
     def home(self) -> bytes | None:
@@ -243,7 +243,7 @@ class OdlThorlabs(OpticalDelayLine):
         if homed is None:
             self.logger.error("home command is not completed in ODL")
             raise OdlHomeNotCompleted(f"Odl{self}: Homed response can not be received")
-        self.curr_pos_steps = ODL_HOMD_POSITION
+        self.currrent_steps = ODL_HOMD_POSITION
         return homed
 
 
