@@ -127,10 +127,12 @@ class OdlThorlabs(OpticalDelayLine):
         move_result = self.__waitForReply(b"\x64\04", self.move_timeout)
         if not move_result:
             self.logger.error(f"move command is not completed")
-            # raise OdlMoveNotCompleted(
-            #    f"ODL({self}): No moved_completed response has been received"
-            # )
-        # self.curr_pos_steps = move_steps
+            raise OdlMoveNotCompleted(
+                f"ODL({self}): No moved_completed response has been received"
+            )
+        self.curr_pos_steps = move_steps
+
+        self.logger.debug(f"Move completed position_steps({self.curr_pos_steps})!")
 
     def step_forward(self, steps):
         self.__ensure_port_open()
