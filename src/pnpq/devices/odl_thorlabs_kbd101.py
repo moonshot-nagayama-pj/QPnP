@@ -198,8 +198,8 @@ class OdlThorlabs(OpticalDelayLine):
     def auto_update_stop(self) -> bytes | None:
         self.logger.info("cal auto update stop cmd")
         self.__ensure_port_open()
-        msg = STOP_UPDATE_COMMAND
-        self.conn.write(msg)
+
+        self.conn.write(STOP_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x91\x04", 2)
 
         self.logger.debug(f"auto_update_stop result: {result}")
