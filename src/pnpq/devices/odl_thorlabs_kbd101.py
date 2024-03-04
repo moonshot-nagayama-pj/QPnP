@@ -30,7 +30,7 @@ ODL_RELATIVE_MOVE_COMMAND = b"\x48\x04\x06\x00\xd0\x01\x00\x00"
 # https://www.thorlabs.com/Software/Motion%20Control/APT_Communications_Protocol.pdf
 MGMSG_MOT_REQ_USTATUSUPDATE = b"\x90\x04\x01\x00\x50\x01"
 MGMSG_MOT_GET_USTATUSUPDATE = b"\x91\x04"
-ODL_HOMD_POSITION = 0
+ODL_HOMED_POSITION = 0
 
 
 class OdlThorlabs(OpticalDelayLine):
@@ -183,10 +183,9 @@ class OdlThorlabs(OpticalDelayLine):
         self.currrent_steps += steps
 
     def auto_update_start(self) -> bytes | None:
-        self.logger.info("cal auto update start cmd")
+        self.logger.info("call auto update start cmd")
         self.__ensure_port_open()
-        msg = START_UPDATE_COMMAND
-        self.conn.write(msg)
+        self.conn.write(START_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x91\x04", self.move_timeout)
 
         self.logger.debug(f"auto_update_start result: {result}")
