@@ -40,6 +40,14 @@ class OdlThorlabs(OpticalDelayLine):
         self,
         serial_port: str | None = None,
         serial_number: str | None = None,
+        name="Thorlabs",
+        model="KBD101 driver DDS100/M Stage",
+        min_move: int | None = None,
+        max_move: int | None = None,
+        resolution: int | None = None,
+        home_timeout: int | None = None,
+        move_timeout: int | None = None,
+        auto_update: bool | None = None,
         config_file=None,
     ):
         super().__init__(serial_port, serial_number, config_file)
@@ -48,14 +56,12 @@ class OdlThorlabs(OpticalDelayLine):
         self.conn.stopbits = 1
         self.conn.parity = "N"
         self.conn.rtscts = 1
-        self.resolution = 2000
         self.home_timeout = 25
         self.move_timeout = 4
+        self.resolution = 2000
         self.auto_update = False
         self.maxmove = 100
         self.minmove = 0
-        self.name = "Thorlabs"
-        self.model = "KBD101 driver DDS100/M Stage"
         self.logger = logging.getLogger(f"{self}")
 
     def __ensure_port_open(self) -> None:
