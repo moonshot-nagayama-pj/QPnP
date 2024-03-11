@@ -3,8 +3,11 @@ import logging
 
 logger = logging.getLogger("utils")
 
-USB_HUB_iVENDOR = "2109"
-USB_HUB_iPROFUCT = ["0817", "2817"]
+
+AVAILABLE_USB_HUBS: list[tuple[str, str]] = [
+    ("2109", "0817"),  # USB3.0 HUB
+    ("2109", "2817"),  # USB2.0 HUB
+]
 
 
 def get_available_port(device_serial_number: str) -> str | None:
@@ -21,8 +24,8 @@ def check_usb_hub_connected() -> bool | None:
     logger.debug(f"check_usb_hub_connected")
     available_ports = list_comports()
     for port in available_ports:
-        if port.vid == USB_HUB_iVENDOR:
-            if port.pid in USB_HUB_iPROFUCT:
-                logger.debug(f"compatible USB HUB{port} is found")
-                return True
+        pair_tuple = (port.vid, port.pid)
+        if pair_tuple in AVAILABLE_USB_HUBS:
+            logger.debug(f"compatible USB HUB{port} is found")
+            return True
     return False
