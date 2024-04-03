@@ -64,9 +64,9 @@ class Waveplate:
         self.home_timeout = 20
         self.max_channel = 1
         self.auto_update = False
-        self.hub = check_usb_hub_connected()
+        self.hub_connected = check_usb_hub_connected()
 
-        self.logger = logging.getLogger(f"USB_HUB{self.hub}")
+        self.logger = logging.getLogger(f"USB_HUB{self.hub_connected}")
         if self.device_sn is not None:
             self.conn.port = get_available_port(self.device_sn)
             if self.conn.port is None:
