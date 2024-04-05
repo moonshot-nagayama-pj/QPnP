@@ -16,7 +16,7 @@ def get_available_port(device_serial_number: str) -> str | None:
     for port in available_ports:
         if port.serial_number == device_serial_number:
             logger.debug(f"port found: {port.device}")
-            return port.device
+            return str(port.device)
     return None
 
 
