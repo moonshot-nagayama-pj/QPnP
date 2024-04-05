@@ -13,7 +13,8 @@ from pnpq.errors import (
     WaveplateEnableChannelError,
     WaveplateInvalidMotorChannelError,
 )
-from pnpq.utils import (
+
+from pnpq.devices.utils import (
     get_available_port,
     check_usb_hub_connected,
 )
@@ -145,11 +146,10 @@ class Waveplate:
             )
         return result
 
-    def auto_update_start(self) -> bytes | None:
+    def auto_update_start(self) -> bytes:
         self.logger.info("cal auto update start cmd")
         self.__ensure_port_open()
-        msg = START_UPDATE_COMMAND
-        self.conn.write(msg)
+        self.conn.write(START_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
 
         self.logger.debug(f"auto_update_start result: {result}")
@@ -159,11 +159,10 @@ class Waveplate:
             self.auto_update = True
         return result
 
-    def auto_update_stop(self) -> bytes | None:
+    def auto_update_stop(self) -> bytes:
         self.logger.info("cal auto update stop cmd")
         self.__ensure_port_open()
-        msg = STOP_UPDATE_COMMAND
-        self.conn.write(msg)
+        self.conn.write(STOP_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x81\x04", 1)
 
         self.logger.debug(f"auto_update_stop result: {result}")
@@ -171,7 +170,6 @@ class Waveplate:
             self.logger.warn("auto update stop command is not completed")
         else:
             self.auto_update = False
-
         return result
 
     def disable_channel(self, chanid: int) -> bytes | None:
