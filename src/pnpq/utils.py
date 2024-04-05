@@ -16,7 +16,7 @@ def get_available_port(device_serial_number: str) -> str | None:
     return None
 
 
-def check_usb_hub_connected() -> bool | None:
+def check_usb_hub_connected() -> bool:
     logger.debug(f"check_usb_hub_connected")
 
     usb2_hub = usb.core.find(idVendor=0x2109, idProduct=0x2817)
