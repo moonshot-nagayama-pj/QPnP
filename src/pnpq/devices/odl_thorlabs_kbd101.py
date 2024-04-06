@@ -34,34 +34,48 @@ ODL_HOMED_POSITION = 0
 
 
 class OdlThorlabs(OpticalDelayLine):
+    max_move: int
+    """represents maximum specified length for moving on the stage"""
+
+    min_move: int
+    """represents minimum specified length for moving on the stage: usually zero"""
+
+    resolution: int
+    """represents minimum specified length for moving on the stage: usually zero"""
+
+    home_timeout: int
+    """required time for completing home in seconds"""
+
+    move_timeout: int
+    """required time for completing home in seconds"""
+
+    auto_update: bool
+    """a flag for checking automatic update is active or inactive"""
+
     currrent_steps: int | None
+    """current position of optical delay line in steps"""
 
     def __init__(
         self,
         serial_port: str | None = None,
         serial_number: str | None = None,
-        name="Thorlabs",
-        model="KBD101 driver DDS100/M Stage",
-        min_move: int | None = None,
-        max_move: int | None = None,
-        resolution: int | None = None,
-        home_timeout: int | None = None,
-        move_timeout: int | None = None,
-        auto_update: bool | None = None,
         config_file=None,
     ):
         super().__init__(serial_port, serial_number, config_file)
+        self.name = "Thorlabs"
+        self.model = "KBD101 driver DDS100/M Stage"
         self.conn.baudrate = 115200
         self.conn.bytesize = 8
         self.conn.stopbits = 1
         self.conn.parity = "N"
         self.conn.rtscts = 1
+
         self.home_timeout = 25
         self.move_timeout = 4
         self.resolution = 2000
         self.auto_update = False
-        self.maxmove = 100
-        self.minmove = 0
+        self.max_move = 100
+        self.min_move = 0
         self.logger = logging.getLogger(f"{self}")
 
     def __ensure_port_open(self) -> None:
@@ -70,13 +84,15 @@ class OdlThorlabs(OpticalDelayLine):
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def __ensure_steps_in_range(self, steps: int) -> None:
-        max_threshold = self.maxmove * self.resolution
-        min_threshold = self.minmove * self.resolution
+        max_threshold = self.max_move * self.resolution
+        min_threshold = self.min_move * self.resolution
 
         if min_threshold <= steps <= max_threshold:
             return
+
+        self.logger.error(f"ODL({self}) required steps:({steps}) is out of range")
         raise OdlMoveOutofRangeError(
-            f"Move request for device{self} is out of range min({self.minmove}) - max({self.maxmove})"
+            f"Move request for device{self} is out of range min({self.min_move}) - max({self.max_move})"
         )
 
     def connect(self) -> None:
@@ -130,9 +146,9 @@ class OdlThorlabs(OpticalDelayLine):
         move_result = self.__wait_for_reply(b"\x64\04", self.move_timeout)
         if not move_result:
             self.logger.error(f"move command is not completed")
-            raise OdlMoveNotCompleted(
-                f"ODL({self}): No moved_completed response has been received"
-            )
+            # raise OdlMoveNotCompleted(
+            #    f"ODL({self}): No moved_completed response has been received"
+            # )
         self.currrent_steps = move_steps
         self.logger.debug(f"Move completed position_steps({self.currrent_steps})!")
 
@@ -156,14 +172,14 @@ class OdlThorlabs(OpticalDelayLine):
 
     def __ensure_final_in_range(self, current_position: int, steps: int) -> None:
 
-        max_threshold = self.maxmove * self.resolution
-        min_threshold = self.maxmove * self.resolution
+        max_threshold = self.max_move * self.resolution
+        min_threshold = self.min_move * self.resolution
 
         next_position = current_position + steps
         if min_threshold <= next_position <= max_threshold:
             return
         raise OdlMoveOutofRangeError(
-            f"The relative change position request for device{self} is out of range min({self.minmove}) - max({self.maxmove})"
+            f"The relative change position request for device{self} is out of range min({self.min_move}) - max({self.max_move})"
         )
 
     def step_backward(self, steps: int) -> None:
@@ -248,7 +264,7 @@ class OdlThorlabs(OpticalDelayLine):
         if homed is None:
             self.logger.error("home command is not completed in ODL")
             raise OdlHomeNotCompleted(f"Odl{self}: Homed response can not be received")
-        self.currrent_steps = ODL_HOMD_POSITION
+        self.currrent_steps = ODL_HOMED_POSITION
         return homed
 
 
