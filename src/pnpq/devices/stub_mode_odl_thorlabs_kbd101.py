@@ -61,9 +61,6 @@ class OdlThorlabs(OpticalDelayLine):
         # Is connected to the device
         self.connected = False
 
-        # Enabled channels (enable 1 by default)
-        self.enabled_channels = [1]
-
     def __ensure_port_open(self) -> None:
         if not self.connected:
             self.logger.warning("Device not connected")
