@@ -15,16 +15,13 @@ from pnpq.errors import (
 )
 
 class Waveplate:
-    # conn: Serial
-    # serial_number: str
-    # port: str | None
     resolution: int
     max_steps: int
     relative_home: float
 
     def __init__(self):
         # Stub Serial Number
-        # TODO: Custom serial number from initalizer
+        # TODO: Custom serial number from initializer
         self.device_sn = "stubwaveplate"
 
         self.resolution = 136533
@@ -33,7 +30,6 @@ class Waveplate:
         self.home_timeout = 20
         self.max_channel = 1
         self.auto_update = False
-        # self.hub_connected = check_usb_hub_connected()
 
         self.logger = logging.getLogger(f"{self}")
 
@@ -48,7 +44,7 @@ class Waveplate:
 
     def __ensure_port_open(self) -> None:
         if not self.connected:
-            self.logger.warning("Device not connected")
+            self.logger.error("Device not connected")
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def __ensure_less_than_max_steps(self, steps: int) -> None:
@@ -85,7 +81,7 @@ class Waveplate:
         # Simulated delay for homing
         # TODO: Delay calculation
         time.sleep(1)
-        self.logger.info(f"Home Position: {self.current_position}")
+        self.logger.info("Home position: %s", self.current_position)
 
     def auto_update_start(self):
         self.__ensure_port_open()
@@ -99,7 +95,7 @@ class Waveplate:
 
     def disable_channel(self, chanid: int):
         self.__ensure_port_open()
-        self.logger.info(f"Stub Waveplate Disable Channel {chanid}")
+        self.logger.info("Stub Waveplate Disable Channel: %s", chanid)
 
         if chanid >= self.max_channel:
             raise WaveplateInvalidMotorChannelError(f"Channel {chanid} is not enabled")
@@ -112,7 +108,7 @@ class Waveplate:
 
     def enable_channel(self, chanid: int):
         self.__ensure_port_open()
-        self.logger.info(f"Stub Waveplate Enable Channel {chanid}")
+        self.logger.info("Stub Waveplate Enable Channel: %s", chanid)
         if chanid > self.max_channel:
             raise WaveplateInvalidMotorChannelError(f"Invalid motor channel: {chanid}. Max channel: {self.max_channel}")
 
@@ -129,7 +125,7 @@ class Waveplate:
     def getpos(self):
         self.__ensure_port_open()
         self.logger.info("Stub Waveplate Get Position")
-        self.logger.info(f"Current Position: Steps: {self.current_position} Degrees: {self.current_position / self.resolution}")
+        self.logger.info("Current Position: Steps: %s Degrees: %s", self.current_position, self.current_position / self.resolution)
         return self.current_position
 
     def rotate(self, degree: int | float):
@@ -140,68 +136,38 @@ class Waveplate:
             # Do nothing if channel is not enabled
             return
 
-        self.logger.info(f"Stub Waveplate Rotate to {degree}")
+        self.logger.info("Stub Waveplate Rotate to %s", degree)
         # Calculate number of steps to move
-        movePosition = degree * self.resolution
+        move_position = degree * self.resolution
         # Update current position
-        self.current_position = movePosition
+        self.current_position = move_position
         # Delay to simulate rotation (for now: v=1ms/deg)
-        time.sleep(abs(movePosition - self.current_position) / 1000)
+        time.sleep(abs(move_position - self.current_position) / 1000)
         # TODO: Return a fake reply from the device
 
     def step_backward(self, steps: int):
-        self.__ensure_port_open()
-        self.__ensure_less_than_max_steps(steps)
-
-        self.logger.info(f"Stub Waveplate Step Backware {steps}")
-
-        if not self.__stub_check_channel(1):
-            # Do nothing if channel is not enabled
-            return
-
-        # Make steps negative
-        steps = -steps
-        self.current_position += steps
-        # Delay to simulate rotation (for now: v=1ms/deg)
-        time.sleep(abs(steps) / 1000)
+        # Convert steps to degrees
+        new_steps = self.current_position - steps
+        degrees = new_steps / self.resolution
+        self.rotate(-degrees)
 
     def step_forward(self, steps: int):
-        self.__ensure_port_open()
-        self.__ensure_less_than_max_steps(steps)
-
-        self.logger.info(f"Stub Waveplate Step Forward {steps}")
-
-        if not self.__stub_check_channel(1):
-            # Do nothing if channel is not enabled
-            return
-
-        self.current_position += steps
-        # Delay to simulate rotation (for now: v=1ms/deg)
-        time.sleep(abs(steps) / 1000)
-        # In the future, maybe we can return a fake reply from the device
+        # Convert steps to degrees
+        new_steps = self.current_position + steps
+        degrees = new_steps / self.resolution
+        self.rotate(degrees)
 
     def rotate_relative(self, degree: int | float):
-        self.__ensure_port_open()
-        self.__ensure_valid_degree(degree)
-
-        self.logger.info(f"Stub Waveplate Rotate Relative {degree}")
-
-        if not self.__stub_check_channel(1):
-            # Do nothing if channel is not enabled
-            return
-
-        # Calculate number of steps to move
-        movePosition = degree * self.resolution
-        # Update current position
-        self.current_position += movePosition
-        # Delay to simulate rotation (for now: v=1ms/deg)
-        time.sleep(abs(movePosition) / 1000)
+        # Get new rotation degree
+        current_degree = self.current_position / self.resolution
+        new_degree = current_degree + degree
+        self.rotate(new_degree)
 
     def custom_home(self, degree):
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        self.logger.info(f"Stub Waveplate Custom Home {degree}")
+        self.logger.info("Stub Waveplate Custom Home %s", degree)
 
         if not self.__stub_check_channel(1):
             # Do nothing if channel is not enabled
@@ -215,7 +181,7 @@ class Waveplate:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        self.logger.info(f"Stub Waveplate Custom Rotate {degree}")
+        self.logger.info("Stub Waveplate Custom Rotate %s", degree)
 
         if not self.relative_home:
             # Do nothing if relative home is not set
