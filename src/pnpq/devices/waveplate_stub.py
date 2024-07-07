@@ -14,7 +14,7 @@ from pnpq.errors import (
     WaveplateInvalidMotorChannelError,
 )
 
-class Waveplate:
+class WaveplateStub:
     """Stub Waveplate Device Class"""
     resolution: int
     max_steps: int
