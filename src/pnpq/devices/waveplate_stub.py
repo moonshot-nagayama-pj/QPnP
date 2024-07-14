@@ -107,7 +107,7 @@ class WaveplateStub:
         self.__ensure_port_open()
         self.logger.info("Stub Waveplate Disable Channel: %s", chanid)
 
-        if chanid >= self.max_channel:
+        if chanid > self.max_channel:
             raise WaveplateInvalidMotorChannelError(f"Invalid motor channel: {chanid}.")
 
         # Remove channel from enabled channels
@@ -120,7 +120,7 @@ class WaveplateStub:
         """Enable a channel on the device specified by chanid"""
         self.__ensure_port_open()
         self.logger.info("Stub Waveplate Enable Channel: %s", chanid)
-        if chanid >= self.max_channel:
+        if chanid > self.max_channel:
             raise WaveplateInvalidMotorChannelError(f"Invalid motor channel: {chanid}.")
 
         self.enabled_channels.add(chanid)
@@ -164,7 +164,7 @@ class WaveplateStub:
         # Convert steps to degrees
         new_steps = self.current_position - steps
         degrees = new_steps / self.resolution
-        self.rotate(-degrees)
+        self.rotate(degrees)
 
     def step_forward(self, steps: int) -> None:
         """Step forward by a specified number of steps"""
@@ -181,7 +181,7 @@ class WaveplateStub:
         self.rotate(new_degree)
 
     def custom_home(self, degree) -> None:
-        """Set custom home position for the device and rotate to that position"""
+        """Set custom home position in degrees for the device and rotate to that position"""
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 

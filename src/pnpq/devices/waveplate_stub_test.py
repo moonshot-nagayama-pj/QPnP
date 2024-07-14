@@ -1,35 +1,100 @@
-from waveplate_stub import WaveplateStub
-from waveplate_stub import (
+from .waveplate_stub import WaveplateStub
+from pnpq.errors import (
     DeviceDisconnectedError,
     WaveplateInvalidDegreeError,
+    WaveplateInvalidMotorChannelError,
 )
-import unittest
+import pytest
 
-class TestStubWaveplate(unittest.TestCase):
-    """Unit test case for WaveplateStub class"""
-    def __init__(self, *args, **kwargs):
-        super(TestStubWaveplate, self).__init__(*args, **kwargs)
-        self.wp = WaveplateStub()
+def test_access_without_connection():
+    wp = WaveplateStub()
+    with pytest.raises(DeviceDisconnectedError):
+        wp.identify()
 
-    def test_access_without_connection(self):
-        # Test if there's a DeviceDisconnectedError
-        self.assertRaises(DeviceDisconnectedError, self.wp.identify)
+def test_connect():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.identify()
 
-    def test_connect(self):
-        self.wp.connect()
-        # Test if there's no exception
-        self.wp.identify()
+def test_home():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.rotate(90)
+    wp.home()
+    pos = wp.getpos()
+    assert pos == 0
 
-    def test_rotate(self):
-        self.wp.connect()
-        self.wp.rotate(90)
-        pos = self.wp.getpos()
-        res = self.wp.resolution
-        self.assertEqual(pos, 90*res)
+def test_rotate():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.rotate(90)
+    pos = wp.getpos()
+    res = wp.resolution
+    assert pos == 90*res
 
-    def test_rotate_invalid_degree(self):
-        self.wp.connect()
-        self.assertRaises(WaveplateInvalidDegreeError, self.wp.rotate, 361)
+def test_rotate_invalid_degree():
+    wp = WaveplateStub()
+    wp.connect()
+    with pytest.raises(WaveplateInvalidDegreeError):
+        wp.rotate(361)
 
-if __name__ == '__main__':
-    unittest.main()
+def test_disable_and_enable_channels():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.disable_channel(1)
+    wp.rotate(90)
+    # Should not move
+    pos = wp.getpos()
+    assert pos == 0
+    wp.enable_channel(1)
+    wp.rotate(90)
+    pos = wp.getpos()
+    res = wp.resolution
+    assert pos == 90*res
+
+def test_disable_invalid_channel():
+    wp = WaveplateStub()
+    wp.connect()
+    with pytest.raises(WaveplateInvalidMotorChannelError):
+        # Waveplates has max channel of 1
+        wp.disable_channel(2)
+
+def test_enable_duplicate_channel():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.disable_channel(1)
+    wp.enable_channel(1)
+    wp.enable_channel(1)
+    # Make sure there is only one channel 1
+    assert len(wp.enabled_channels) == 1
+
+def test_step_forward_backward():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.rotate(90)
+    pos = wp.getpos()
+    wp.step_forward(10)
+    newPos = wp.getpos()
+    assert newPos == pos + 10
+    wp.step_backward(10)
+    newPos = wp.getpos()
+    assert newPos == pos
+
+def test_rotate_relative():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.rotate(90)
+    pos = wp.getpos()
+    wp.rotate_relative(10)
+    newPos = wp.getpos()
+    assert newPos == pos + 10*wp.resolution
+
+def test_custom_home():
+    wp = WaveplateStub()
+    wp.connect()
+    wp.custom_home(45)
+    pos = wp.getpos()
+    assert pos == 45*wp.resolution
+    wp.custom_rotate(45)
+    pos = wp.getpos()
+    assert pos == 90*wp.resolution
