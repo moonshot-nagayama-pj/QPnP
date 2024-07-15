@@ -16,32 +16,31 @@ from pnpq.errors import (
 
 class WaveplateStub:
     """Stub Waveplate Device Class"""
-    # resolution: int
-    # max_steps: int
-    # relative_home: float
 
     def __init__(self):
         # Stub Serial Number
         # TODO: Custom serial number from initializer
         self.device_sn = "stubwaveplate"
 
-        self.resolution = 136533
-        self.max_steps = 136533
-        self.rotate_timeout = 10
-        self.home_timeout = 20
-        self.max_channel = 1
-        self.auto_update = False
+        # Resolution of the device in steps per degree
+        self.resolution: int = 136533
+        # Maximum steps the device can move (360 degrees)
+        self.max_steps: int = 136533*360
+        # Maximum channel the device can control
+        self.max_channel: int = 1
+        # Flag for auto updating device information
+        self.auto_update: bool = False
 
         self.logger = logging.getLogger(f"{self}")
 
-        # Stub device parameters
-        self.current_position = 0
+        # Current Position of the device in steps
+        self.current_position: int = 0
 
-        # Is connected to the device
+        # Is connected to the device (used internally)
         self.connected = False
 
-        # Enabled channels (enable 1 by default)
-        self.enabled_channels = {1}
+        # Enabled channels (enable 1 by default, used internally)
+        self.enabled_channels: set = {1}
 
     def testRaise(self):
         raise DeviceDisconnectedError("Test Error")
@@ -51,9 +50,10 @@ class WaveplateStub:
             self.logger.error("Device not connected")
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
-    def __ensure_less_than_max_steps(self, steps: int) -> None:
-        if steps > self.max_steps:
-            raise WaveplateInvalidStepsError(f"Given steps: {steps} exceeds the maximum steps: {self.max_steps}")
+    def __ensure_valid_steps(self, steps: int) -> None:
+        if 0 <= steps <= self.max_steps:
+            return
+        raise WaveplateInvalidStepsError(f"Invalid steps: {steps}. Steps must be in a range [0,{self.max_steps}]")
 
     def __ensure_valid_degree(self, degree: float) -> None:
         if 0 <= degree <= 360:
@@ -63,6 +63,10 @@ class WaveplateStub:
     # Maybe make this into a function wrapper to remove some redundant code?
     def __stub_check_channel(self, chanid: int):
         return chanid in self.enabled_channels
+
+    def __set_steps(self, steps: int) -> None:
+        self.__ensure_valid_steps(steps)
+        self.current_position = steps
 
     def connect(self) -> None:
         """Establish connection to the device"""
@@ -134,12 +138,18 @@ class WaveplateStub:
         """Get the device resolution"""
         return self.resolution
 
-    def getpos(self) -> int | float:
+    def getpos(self) -> int:
         """Get the current position of the device in steps"""
         self.__ensure_port_open()
         self.logger.info("Stub Waveplate Get Position")
         self.logger.info("Current Position: Steps: %s Degrees: %s", self.current_position, self.current_position / self.resolution)
         return self.current_position
+
+    def get_degree(self) -> float:
+        """Get the current position of the device in degrees"""
+        self.__ensure_port_open()
+        self.logger.info("Stub Waveplate Get Degree")
+        return self.current_position / self.resolution
 
     def rotate(self, degree: int | float) -> None:
         """Rotate the device to a specified absolute degree"""
@@ -151,36 +161,34 @@ class WaveplateStub:
             return
 
         self.logger.info("Stub Waveplate Rotate to %s", degree)
-        # Calculate number of steps to move
-        move_position = degree * self.resolution
+        # Calculate number of steps to move (round to nearest integer)
+        move_position = int(degree * self.resolution)
         # Update current position
-        self.current_position = move_position
+        self.__set_steps(move_position)
         # Delay to simulate rotation (for now: v=1ms/deg)
         time.sleep(abs(move_position - self.current_position) / 1000)
         # TODO: Return a fake reply from the device
 
     def step_backward(self, steps: int) -> None:
         """Step backward by a specified number of steps"""
-        # Convert steps to degrees
+        # Get new position and set steps
         new_steps = self.current_position - steps
-        degrees = new_steps / self.resolution
-        self.rotate(degrees)
+        self.__set_steps(new_steps)
 
     def step_forward(self, steps: int) -> None:
         """Step forward by a specified number of steps"""
-        # Convert steps to degrees
+        # Get new position and set steps
         new_steps = self.current_position + steps
-        degrees = new_steps / self.resolution
-        self.rotate(degrees)
+        self.__set_steps(new_steps)
 
     def rotate_relative(self, degree: int | float) -> None:
         """Rotate the device by a specified degree relative to the current position"""
         # Get new rotation degree
-        current_degree = self.current_position / self.resolution
+        current_degree = self.get_degree()
         new_degree = current_degree + degree
         self.rotate(new_degree)
 
-    def custom_home(self, degree) -> None:
+    def custom_home(self, degree: int | float) -> None:
         """Set custom home position in degrees for the device and rotate to that position"""
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
@@ -195,10 +203,9 @@ class WaveplateStub:
         self.relative_home = degree
         self.rotate(degree)
 
-    def custom_rotate(self, degree) -> None:
+    def custom_rotate(self, degree: int | float) -> None:
         """Rotate the device to a specified degree relative to the custom home position"""
         self.__ensure_port_open()
-        self.__ensure_valid_degree(degree)
 
         self.logger.info("Stub Waveplate Custom Rotate %s", degree)
 

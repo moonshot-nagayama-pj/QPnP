@@ -1,8 +1,9 @@
-from .waveplate_stub import WaveplateStub
+from pnpq.devices.waveplate_stub import WaveplateStub
 from pnpq.errors import (
     DeviceDisconnectedError,
     WaveplateInvalidDegreeError,
     WaveplateInvalidMotorChannelError,
+    WaveplateInvalidStepsError,
 )
 import pytest
 
@@ -79,6 +80,13 @@ def test_step_forward_backward():
     wp.step_backward(10)
     newPos = wp.getpos()
     assert newPos == pos
+
+def test_invalid_steps():
+    wp = WaveplateStub()
+    wp.connect()
+    with pytest.raises(WaveplateInvalidStepsError):
+        wp.step_backward(1)
+        wp.step_forward(wp.max_steps + 1)
 
 def test_rotate_relative():
     wp = WaveplateStub()
