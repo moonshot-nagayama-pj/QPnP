@@ -42,9 +42,6 @@ class WaveplateStub:
         # Enabled channels (enable 1 by default, used internally)
         self.enabled_channels: set = {1}
 
-    def testRaise(self):
-        raise DeviceDisconnectedError("Test Error")
-
     def __ensure_port_open(self) -> None:
         if not self.connected:
             self.logger.error("Device not connected")
@@ -60,7 +57,6 @@ class WaveplateStub:
             return
         raise WaveplateInvalidDegreeError(f"Invalid degree: {degree}. Degree must be in a range [0,360]")
 
-    # Maybe make this into a function wrapper to remove some redundant code?
     def __stub_check_channel(self, chanid: int):
         return chanid in self.enabled_channels
 
