@@ -14,81 +14,80 @@ def test_access_without_connection(f, argc):
         # Since the device is not connected, all methods should raise DeviceDisconnectedError
         # For simplicity, 1 is passed as argument for all methods, the value should be small enough to not raise any other errors
         # TODO: Refactor this to be more flexible in the future
-        arg = ",".join(["1"]*argc)
+        arg = ",".join(["1"] * argc)
         eval(f"wp.{f}({arg})")
 
 @pytest.fixture
-def c_wp():
-    """Connected Waveplate Stub Test Fixture"""
+def connected_waveplate():
     wp = WaveplateStub()
     wp.connect()
     return wp
 
-def test_identify(c_wp):
-    c_wp.identify()
+def test_identify(connected_waveplate):
+    connected_waveplate.identify()
 
-def test_home(c_wp):
-    c_wp.rotate(90)
-    c_wp.home()
-    assert c_wp.getpos() == 0
+def test_home(connected_waveplate):
+    connected_waveplate.rotate(90)
+    connected_waveplate.home()
+    assert connected_waveplate.getpos() == 0
 
-def test_rotate(c_wp):
-    c_wp.rotate(90)
-    assert c_wp.getpos() == 90 * c_wp.resolution
+def test_rotate(connected_waveplate):
+    connected_waveplate.rotate(90)
+    assert connected_waveplate.getpos() == 90 * connected_waveplate.resolution
 
-def test_rotate_invalid_degree(c_wp):
+def test_rotate_invalid_degree(connected_waveplate):
     with pytest.raises(WaveplateInvalidDegreeError):
-        c_wp.rotate(361)
+        connected_waveplate.rotate(361)
 
-def test_disable_and_enable_channels(c_wp):
-    c_wp.disable_channel(1)
-    c_wp.rotate(90)
+def test_disable_and_enable_channels(connected_waveplate):
+    connected_waveplate.disable_channel(1)
+    connected_waveplate.rotate(90)
     # Should not move
-    assert c_wp.getpos() == 0
-    c_wp.enable_channel(1)
-    c_wp.rotate(90)
-    assert c_wp.getpos() == 90 * c_wp.resolution
+    assert connected_waveplate.getpos() == 0
+    connected_waveplate.enable_channel(1)
+    connected_waveplate.rotate(90)
+    assert connected_waveplate.getpos() == 90 * connected_waveplate.resolution
 
-def test_disable_invalid_channel(c_wp):
+def test_disable_invalid_channel(connected_waveplate):
     with pytest.raises(WaveplateInvalidMotorChannelError):
         # Waveplates has max channel of 1
-        c_wp.disable_channel(2)
+        connected_waveplate.disable_channel(2)
 
-def test_enable_duplicate_channel(c_wp):
-    c_wp.disable_channel(1)
-    c_wp.enable_channel(1)
-    c_wp.enable_channel(1)
+def test_enable_duplicate_channel(connected_waveplate):
+    connected_waveplate.disable_channel(1)
+    connected_waveplate.enable_channel(1)
+    connected_waveplate.enable_channel(1)
     # Make sure there is only one channel 1
-    assert len(c_wp.enabled_channels) == 1
+    assert len(connected_waveplate.enabled_channels) == 1
 
-def test_step_forward(c_wp):
-    c_wp.rotate(90)
-    orig_pos = c_wp.getpos()
-    c_wp.step_forward(10)
-    assert c_wp.getpos() == orig_pos + 10
+def test_step_forward(connected_waveplate):
+    connected_waveplate.rotate(90)
+    original_position = connected_waveplate.getpos()
+    connected_waveplate.step_forward(10)
+    assert connected_waveplate.getpos() == original_position + 10
 
-def test_step_backward(c_wp):
-    c_wp.rotate(90)
-    orig_pos = c_wp.getpos()
-    c_wp.step_backward(10)
-    assert c_wp.getpos() == orig_pos - 10
+def test_step_backward(connected_waveplate):
+    connected_waveplate.rotate(90)
+    original_position = connected_waveplate.getpos()
+    connected_waveplate.step_backward(10)
+    assert connected_waveplate.getpos() == original_position - 10
 
-def test_invalid_steps_backward(c_wp):
+def test_invalid_steps_backward(connected_waveplate):
     with pytest.raises(WaveplateInvalidStepsError):
-        c_wp.step_backward(1)
+        connected_waveplate.step_backward(1)
 
-def test_invalid_steps_forward(c_wp):
+def test_invalid_steps_forward(connected_waveplate):
     with pytest.raises(WaveplateInvalidStepsError):
-        c_wp.step_forward(c_wp.max_steps + 1)
+        connected_waveplate.step_forward(connected_waveplate.max_steps + 1)
 
-def test_rotate_relative(c_wp):
-    c_wp.rotate(90)
-    orig_pos = c_wp.getpos()
-    c_wp.rotate_relative(10)
-    assert c_wp.getpos() == orig_pos + 10 * c_wp.resolution
+def test_rotate_relative(connected_waveplate):
+    connected_waveplate.rotate(90)
+    original_position = connected_waveplate.getpos()
+    connected_waveplate.rotate_relative(10)
+    assert connected_waveplate.getpos() == original_position + 10 * connected_waveplate.resolution
 
-def test_custom_home(c_wp):
-    c_wp.custom_home(45)
-    assert c_wp.getpos() == 45 * c_wp.resolution
-    c_wp.custom_rotate(45)
-    assert c_wp.getpos() == 90 * c_wp.resolution
+def test_custom_home(connected_waveplate):
+    connected_waveplate.custom_home(45)
+    assert connected_waveplate.getpos() == 45 * connected_waveplate.resolution
+    connected_waveplate.custom_rotate(45)
+    assert connected_waveplate.getpos() == 90 * connected_waveplate.resolution

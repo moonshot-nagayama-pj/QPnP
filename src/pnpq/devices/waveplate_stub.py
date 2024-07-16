@@ -158,7 +158,7 @@ class WaveplateStub:
             return
 
         self.logger.info("Stub Waveplate Rotate to %s", degree)
-        # Calculate number of steps to move (truncate to nearest integer)
+        # Calculate number of steps to move (truncate to integer)
         move_position = int(degree * self.resolution)
         # Update current position
         self.__set_steps(move_position)
