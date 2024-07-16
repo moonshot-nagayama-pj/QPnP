@@ -20,7 +20,7 @@ class WaveplateStub:
     def __init__(self):
         # Stub Serial Number
         # TODO: Custom serial number from initializer
-        self.device_sn = "stubwaveplate"
+        self.device_sn: str = "stubwaveplate"
 
         # Resolution of the device in steps per degree
         self.resolution: int = 136533
@@ -31,13 +31,14 @@ class WaveplateStub:
         # Flag for auto updating device information
         self.auto_update: bool = False
 
-        self.logger = logging.getLogger(f"{self}")
+        # Logger for this class
+        self.logger: logging.Logger = logging.getLogger(f"{self}")
 
         # Current Position of the device in steps
         self.current_position: int = 0
 
         # Is connected to the device (used internally)
-        self.connected = False
+        self.connected: bool = False
 
         # Enabled channels (enable 1 by default, used internally)
         self.enabled_channels: set = {1}
@@ -157,7 +158,7 @@ class WaveplateStub:
             return
 
         self.logger.info("Stub Waveplate Rotate to %s", degree)
-        # Calculate number of steps to move (round to nearest integer)
+        # Calculate number of steps to move (truncate to nearest integer)
         move_position = int(degree * self.resolution)
         # Update current position
         self.__set_steps(move_position)
@@ -167,12 +168,16 @@ class WaveplateStub:
 
     def step_backward(self, steps: int) -> None:
         """Step backward by a specified number of steps"""
+        self.__ensure_port_open()
+
         # Get new position and set steps
         new_steps = self.current_position - steps
         self.__set_steps(new_steps)
 
     def step_forward(self, steps: int) -> None:
         """Step forward by a specified number of steps"""
+        self.__ensure_port_open()
+
         # Get new position and set steps
         new_steps = self.current_position + steps
         self.__set_steps(new_steps)
@@ -213,6 +218,9 @@ class WaveplateStub:
             # Do nothing if channel is not enabled
             return
 
+        # TODO: Support overflow rotation
+        # 1. Accept a relative degree between 0 and 360
+        # 2. Calculate what absolute degree this corresponds to, e.g., if degree + self.relative_home > 360, then overflow back to 0.
         self.rotate(degree + self.relative_home)
 
     def __repr__(self) -> str:
