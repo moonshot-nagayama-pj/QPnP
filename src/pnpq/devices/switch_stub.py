@@ -32,12 +32,12 @@ class Switch:
         self.connected = True
         self.logger.info("Stub Waveplate Connected")
 
-    def bar_state(self):
+    def bar_state(self) -> None:
         """Sets the optical switch's state to 1 (bar state)"""
         self.__ensure_port_open()
         self.state = 1
 
-    def cross(self):
+    def cross(self) -> None:
         """Sets the optical switch's state to 2 (cross state)"""
         self.__ensure_port_open()
         self.state = 2
