@@ -16,7 +16,7 @@ class Switch:
         self.connected: bool = False
 
         # State of the optical switch
-        # 1 is bar state, 2 is cross state
+        # 1 is bar state, 2 is cross state. These are the numbers used to represent these states in the Thorlabs Optical Switch 1310E driver.
         self.state: int = 1
 
         # Logger for this class
