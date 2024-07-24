@@ -5,7 +5,14 @@ import serial
 from serial import Serial
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 import time, logging
-from pnpq.errors import DeviceDisconnectedError
+from pnpq.errors import (
+    DeviceDisconnectedError,
+    OdlMoveNotCompleted,
+    OdlHomeNotCompleted,
+    OdlGetPosNotCompleted,
+    OdlMoveOutofRangeError,
+)
+
 
 
 class OdlOzOptics(OpticalDelayLine):
@@ -42,9 +49,11 @@ class OdlOzOptics(OpticalDelayLine):
         self.command_terminate = "\r\n"
         self.max_move = 50
         self.min_move = 0
+        self.logger = logging.getLogger(f"{self}")
 
         try:
             self.conn.open()
+
         except:
             raise RuntimeError("Can not open OZ optic ODL device")
 
@@ -53,43 +62,73 @@ class OdlOzOptics(OpticalDelayLine):
             self.logger.error("disconnected")
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
-    def connect(self):
-        if self.conn.is_open == 0:
+    def reconnect(self):
+        if self.conn.is_open:
+            self.logger.warning(f"Serial connectio to ODL({self}) is already open!")
+        else:
+            self.logger.info(f"Openning connection to ODL({self}) device!")
             try:
                 self.conn.open()
-            except Exception as err:
-                raise RuntimeError("Connection failed: " + str(err))
+            except:
+                raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def move(self, dist: float):
+        self.logger.debug(f"ODL({self}): move command is received")
         self.__ensure_port_open()
 
         if dist > self.max_move or dist < self.min_move:
-            raise Exception("Invalid Move Parameter")
+            raise OdlMoveOutofRangeError(f"ODL({self}): Invalid Move Parameter:{dist}")
         else:
-            self.set_step(int(dist * self.resolution))
+            response = self.set_step(int(dist * self.resolution))
+            self.logger.debug(f"ODL({self}): move command complete: {response} verifying:")
+            step_position = self.get_step()
+            self.logger.debug(f"ODL({self}): final position after move:{step_position/self.resolution}")
 
     def set_step(self, value):
+        self.logger.debug(f"ODL({self}): set_step command is received")
         self.__ensure_port_open()
         cmd = "S" + str(value)
         response = self.serial_command(cmd)
         return response
 
-    def current_step():
-        pass
+    def get_step(self):
+        self.logger.debug(f"ODL({self}): get_step command is received")
+        self.__ensure_port_open()
+        cmd = "S?"
+        response = self.serial_command(cmd)
+        if (response.find("UNKNOWN")):
+            raise OdlGetPosNotCompleted(
+                f"Unknown position for {self}: run find_home()
+                first and then change or get the position"
+            )
+        step = response.split("Done")[0].split(":")[1]
+        self.logger.debug(f"ODL({self}): get_step:{step}:return{int(step)}")
+        return int(step)
 
-    def home(self):
+    def current_status(self):
+        self.logger.debug(f"ODL({self}): current_status query is received!")
+        self.__ensure_port_open()
+        cmd = "Q?"
+        response = self.serial_command(cmd)
+        self.logger.debug(f"ODL({self}) current_status:{response}")
+        return response
+
+    def find_home(self):
+        self.logger.debug(f"ODL({self}): find_home command is received!")
         self.__ensure_port_open()
         cmd = "FH"
         response = self.serial_command(cmd, retries=1000)
         return response
 
     def get_serial(self):
+        self.logger.debug(f"ODL({self}): get_serial command is received!")
         self.__ensure_port_open()
         cmd = "V2"
         response = self.serial_command(cmd)
         return response.split("Done")[0].split("\r\n")[1]
 
     def get_device_info(self):
+        self.logger.debug(f"ODL({self}): device_info command is received!")
         self.__ensure_port_open()
         cmd = "V1"
         response = self.serial_command(cmd)
@@ -99,6 +138,7 @@ class OdlOzOptics(OpticalDelayLine):
         return device_name, hwd_version
 
     def get_mfg_date(self):
+        self.logger.debug(f"ODL({self}): get manufacturing date command (get_mfg_dates) is received!")
         self.__ensure_port_open()
         cmd = "d?"
         response = self.serial_command(cmd)
@@ -106,12 +146,15 @@ class OdlOzOptics(OpticalDelayLine):
         return date
 
     def echo(self, on_off):
+        self.logger.debug(f"ODL({self}): echo({on_off}) command is received!")
+
         self.__ensure_port_open()
         cmd = "e" + str(on_off)
         response = self.serial_command(cmd)
         return response
 
     def reset(self):
+        self.logger.debug(f"ODL({self}): reset command is received!")
         self.__ensure_port_open()
         cmd = "RESET"
         response = self.serial_command(cmd)
@@ -124,36 +167,28 @@ class OdlOzOptics(OpticalDelayLine):
         response = self.serial_command(cmd)
         return response
 
-    def forward(self):
-        self.__ensure_port_open()
-        cmd = "GF"
-        response = self.serial_command(cmd, retries=15)
-        return response
-
-    def reverse(self):
+    def home(self):
+        self.logger.debug(f"ODL({self}): home command is received!")
         self.__ensure_port_open()
         cmd = "GR"
         response = self.serial_command(cmd, retries=15)
         return response
 
+    def end(self):
+        self.logger.debug(f"ODL({self}): end command is received!")
+
+        self.__ensure_port_open()
+        cmd = "GF"
+        response = self.serial_command(cmd, retries=15)
+        return response
+
     def stop(self):
+        self.logger.debug(f"ODL({self}): stop motor driver command is received!")
+
         self.__ensure_port_open()
         cmd = "G0"
         response = self.serial_command(cmd)
         return response
-
-    def set_step(self, value):
-        self.__ensure_port_open()
-        cmd = "S" + str(value)
-        response = self.serial_command(cmd)
-        return response
-
-    def get_step(self):
-        self.__ensure_port_open()
-        cmd = "S?"
-        response = self.serial_command(cmd)
-        step = response.split("Done")[0].split(":")[1]
-        return int(step)
 
     def write_to_flash(self):
         self.__ensure_port_open()
@@ -222,7 +257,7 @@ class OdlOzOptics(OpticalDelayLine):
         device_output = self.serial_read(retries)
         return device_output
 
-    def readKey(self, key, retries=5):
+    def readKey(self, key, retries=10):
         self.__ensure_port_open()
         device_output = ""
         got_OK = False
@@ -239,7 +274,7 @@ class OdlOzOptics(OpticalDelayLine):
         self.__ensure_port_open()
         ok = False
         bytes = self.conn.read(1)
-        while self.conn.inWaiting() > 0:
+        while self.conn.in_waiting > 0:
             bytes += self.conn.read(1)
         msg = bytes.decode("UTF-8")
         ok = True
