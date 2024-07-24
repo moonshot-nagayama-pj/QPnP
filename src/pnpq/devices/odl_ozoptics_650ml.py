@@ -36,7 +36,6 @@ class OdlOzOptics(OpticalDelayLine):
         serial_port: str | None = None,
         serial_number: str | None = None,
         config_file=None,
-        max_move = int | None = None,
     ):
         super().__init__(serial_port, serial_number, config_file)
         self.name = "OzOptics ODL"
