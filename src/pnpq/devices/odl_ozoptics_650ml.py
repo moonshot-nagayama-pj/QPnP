@@ -14,22 +14,21 @@ from pnpq.errors import (
 )
 
 
-
 class OdlOzOptics(OpticalDelayLine):
+    # maximum length for moving odl from 0-position, the total path length will be 2x(max_move)
     max_move: int
-    """maximum length for moving odl from 0-position, the total path length will be 2x(max_move)"""
 
+    # minimum specified length for moving: usually zero
     min_move: int
-    """minimum specified length for moving: usually zero"""
 
+    # represents minimum specified length for moving on the stage: usually zero
     resolution: int
-    """represents minimum specified length for moving on the stage: usually zero"""
 
+    # required time for completing home in seconds
     home_timeout: int
-    """required time for completing home in seconds"""
 
+    # required time for completing move in seconds
     move_timeout: int
-    """required time for completing home in seconds"""
 
     def __init__(
         self,
@@ -44,7 +43,6 @@ class OdlOzOptics(OpticalDelayLine):
         """Basic Communication BaudRate"""
         self.resolution = 32768 / 5.08
         """32768 steps per motor revolution(5.08 mm = 2xDistance Travel or mirror travel per pitch 0.1 inch)"""
-        self.logger = logging.getLogger(f"{self}")
         self.command_terminate = "\r\n"
         self.max_move = 50
         self.min_move = 0
@@ -63,9 +61,9 @@ class OdlOzOptics(OpticalDelayLine):
 
     def reconnect(self):
         if self.conn.is_open:
-            self.logger.warning(f"Serial connectio to ODL({self}) is already open!")
+            self.logger.info(f"Serial connection to ODL({self}) is already open!")
         else:
-            self.logger.info(f"Openning connection to ODL({self}) device!")
+            self.logger.info(f"Opening connection to ODL({self}) device!")
             try:
                 self.conn.open()
             except:
@@ -77,14 +75,10 @@ class OdlOzOptics(OpticalDelayLine):
 
         if dist > self.max_move or dist < self.min_move:
             raise OdlMoveOutofRangeError(f"ODL({self}): Invalid Move Parameter:{dist}")
-        else:
-            cmd = "S" + str(int(dist * self.resolution))
-            response = self.serial_command(cmd)
-
-            #response = self.set_step(int(dist * self.resolution))
-            self.logger.debug(f"move command complete: {response} verifying:")
-            step_position = self.get_step()
-            self.logger.debug(f"final position after move:{step_position/self.resolution}")
+        response = self.serial_command(f"S{str(int(dist * self.resolution))}")
+        self.logger.debug(f"move command complete: {response} verifying:")
+        step_position = self.get_step()
+        self.logger.debug(f"final position after move:{step_position/self.resolution}")
 
     def set_step(self, value):
         self.logger.debug(f"ODL({self}): set_step command has been received")
@@ -100,7 +94,7 @@ class OdlOzOptics(OpticalDelayLine):
         self.__ensure_port_open()
         cmd = "S?"
         response = self.serial_command(cmd)
-        if (response.find("UNKNOWN") >= 0):
+        if "UNKNOWN" in response:
             raise OdlGetPosNotCompleted(
                 f"Unknown position for ODL({self}): run find_home() first and then change or get the position"
             )
@@ -141,7 +135,9 @@ class OdlOzOptics(OpticalDelayLine):
         return device_name, hwd_version
 
     def get_mfg_date(self):
-        self.logger.debug(f"ODL({self}): get manufacturing date command (get_mfg_dates) has been received!")
+        self.logger.debug(
+            f"ODL({self}): get manufacturing date command (get_mfg_dates) has been received!"
+        )
         self.__ensure_port_open()
         cmd = "d?"
         response = self.serial_command(cmd)
