@@ -4,7 +4,7 @@ from pnpq import OdlThorlabs
 from pnpq import OdlOzOptics
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 
-print("hello world")
+print("Check OzOptics Odl")
 # wp = Waveplate(serial_number='00AAABBB')
 # wp = Waveplate()
 # wp.connect()
@@ -17,9 +17,8 @@ print("hello world")
 # print(OpticalDelayLine("/dev/test"))
 # print(OdlThorlabs())
 # tlodl = OdlThorlabs("/dev/ttyUSB0")
-tlodl = OdlThorlabs(serial_number="28252054")
-tlodl.connect()
-
+ozodl = OdlThorlabs(serial_number="CKBEe12CJ06")
+ozodl.connect()
 
 print(OdlOzOptics)
 # oz = OdlOzOptics(serial_number='CKBEe12CJ06')
