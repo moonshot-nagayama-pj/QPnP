@@ -17,7 +17,7 @@ from pnpq.errors import (
 class WaveplateStub:
     """Stub Waveplate Device Class"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Stub Serial Number
         # TODO: Custom serial number from initializer
         self.device_sn: str = "stubwaveplate"
