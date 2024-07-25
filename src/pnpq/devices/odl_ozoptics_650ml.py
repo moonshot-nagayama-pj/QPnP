@@ -72,40 +72,44 @@ class OdlOzOptics(OpticalDelayLine):
                 raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def move(self, dist: float):
-        self.logger.debug(f"ODL({self}): move command is received")
+        self.logger.debug(f"ODL({self}): move({dist}) command has been received")
         self.__ensure_port_open()
 
         if dist > self.max_move or dist < self.min_move:
             raise OdlMoveOutofRangeError(f"ODL({self}): Invalid Move Parameter:{dist}")
         else:
-            response = self.set_step(int(dist * self.resolution))
-            self.logger.debug(f"ODL({self}): move command complete: {response} verifying:")
+            cmd = "S" + str(int(dist * self.resolution))
+            response = self.serial_command(cmd)
+
+            #response = self.set_step(int(dist * self.resolution))
+            self.logger.debug(f"move command complete: {response} verifying:")
             step_position = self.get_step()
-            self.logger.debug(f"ODL({self}): final position after move:{step_position/self.resolution}")
+            self.logger.debug(f"final position after move:{step_position/self.resolution}")
 
     def set_step(self, value):
-        self.logger.debug(f"ODL({self}): set_step command is received")
+        self.logger.debug(f"ODL({self}): set_step command has been received")
         self.__ensure_port_open()
         cmd = "S" + str(value)
         response = self.serial_command(cmd)
+        self.logger.debug(f"set_step result: {response}")
+
         return response
 
     def get_step(self):
-        self.logger.debug(f"ODL({self}): get_step command is received")
+        self.logger.debug(f"ODL({self}): get_step has been started")
         self.__ensure_port_open()
         cmd = "S?"
         response = self.serial_command(cmd)
-        if (response.find("UNKNOWN")):
+        if (response.find("UNKNOWN") >= 0):
             raise OdlGetPosNotCompleted(
-                f"Unknown position for {self}: run find_home()
-                first and then change or get the position"
+                f"Unknown position for ODL({self}): run find_home() first and then change or get the position"
             )
         step = response.split("Done")[0].split(":")[1]
-        self.logger.debug(f"ODL({self}): get_step:{step}:return{int(step)}")
+        self.logger.debug(f"ODL({self}): get_step:{step}:{int(step)}")
         return int(step)
 
     def current_status(self):
-        self.logger.debug(f"ODL({self}): current_status query is received!")
+        self.logger.debug(f"ODL({self}): current_status query has been received!")
         self.__ensure_port_open()
         cmd = "Q?"
         response = self.serial_command(cmd)
@@ -113,21 +117,21 @@ class OdlOzOptics(OpticalDelayLine):
         return response
 
     def find_home(self):
-        self.logger.debug(f"ODL({self}): find_home command is received!")
+        self.logger.debug(f"ODL({self}): find_home command has been received!")
         self.__ensure_port_open()
         cmd = "FH"
         response = self.serial_command(cmd, retries=1000)
         return response
 
     def get_serial(self):
-        self.logger.debug(f"ODL({self}): get_serial command is received!")
+        self.logger.debug(f"ODL({self}): get_serial command has been received!")
         self.__ensure_port_open()
         cmd = "V2"
         response = self.serial_command(cmd)
         return response.split("Done")[0].split("\r\n")[1]
 
     def get_device_info(self):
-        self.logger.debug(f"ODL({self}): device_info command is received!")
+        self.logger.debug(f"ODL({self}): device_info command has been received!")
         self.__ensure_port_open()
         cmd = "V1"
         response = self.serial_command(cmd)
@@ -137,7 +141,7 @@ class OdlOzOptics(OpticalDelayLine):
         return device_name, hwd_version
 
     def get_mfg_date(self):
-        self.logger.debug(f"ODL({self}): get manufacturing date command (get_mfg_dates) is received!")
+        self.logger.debug(f"ODL({self}): get manufacturing date command (get_mfg_dates) has been received!")
         self.__ensure_port_open()
         cmd = "d?"
         response = self.serial_command(cmd)
@@ -145,7 +149,7 @@ class OdlOzOptics(OpticalDelayLine):
         return date
 
     def echo(self, on_off):
-        self.logger.debug(f"ODL({self}): echo({on_off}) command is received!")
+        self.logger.debug(f"ODL({self}): echo({on_off}) command has been received!")
 
         self.__ensure_port_open()
         cmd = "e" + str(on_off)
@@ -153,7 +157,7 @@ class OdlOzOptics(OpticalDelayLine):
         return response
 
     def reset(self):
-        self.logger.debug(f"ODL({self}): reset command is received!")
+        self.logger.debug(f"ODL({self}): reset command has been received!")
         self.__ensure_port_open()
         cmd = "RESET"
         response = self.serial_command(cmd)
@@ -167,14 +171,14 @@ class OdlOzOptics(OpticalDelayLine):
         return response
 
     def home(self):
-        self.logger.debug(f"ODL({self}): home command is received!")
+        self.logger.debug(f"ODL({self}): home command has been received!")
         self.__ensure_port_open()
         cmd = "GR"
         response = self.serial_command(cmd, retries=15)
         return response
 
     def end(self):
-        self.logger.debug(f"ODL({self}): end command is received!")
+        self.logger.debug(f"ODL({self}): end command has been received!")
 
         self.__ensure_port_open()
         cmd = "GF"
@@ -182,7 +186,7 @@ class OdlOzOptics(OpticalDelayLine):
         return response
 
     def stop(self):
-        self.logger.debug(f"ODL({self}): stop motor driver command is received!")
+        self.logger.debug(f"ODL({self}): stop motor driver command has been received!")
 
         self.__ensure_port_open()
         cmd = "G0"
