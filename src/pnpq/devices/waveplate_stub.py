@@ -17,7 +17,7 @@ from pnpq.errors import (
 class WaveplateStub:
     """Stub Waveplate Device Class"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Stub Serial Number
         # TODO: Custom serial number from initializer
         self.device_sn: str = "stubwaveplate"
@@ -58,7 +58,7 @@ class WaveplateStub:
             return
         raise WaveplateInvalidDegreeError(f"Invalid degree: {degree}. Degree must be in a range [0,360]")
 
-    def __stub_check_channel(self, chanid: int):
+    def __stub_check_channel(self, chanid: int) -> bool:
         return chanid in self.enabled_channels
 
     def __set_steps(self, steps: int) -> None:
