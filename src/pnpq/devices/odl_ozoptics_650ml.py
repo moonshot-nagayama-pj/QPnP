@@ -47,8 +47,14 @@ class OdlOzOptics(OpticalDelayLine):
         response = self.serial_command(cmd)
         return response
 
-    def current_step():
-        pass
+    def get_step(self):
+        response = self.serial_command(f"S?")
+        if "UNKNOWN" in response:
+            raise OdlGetPosNotCompleted(
+                f"Unknown position for ODL({self}): run find_home() first and then change or get the position"
+            )
+        step = response.split("Done")[0].split(":")[1]
+        return int(step)
 
     def home(self):
         cmd = "FH"
