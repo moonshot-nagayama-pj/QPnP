@@ -116,12 +116,6 @@ class OdlOzOptics(OpticalDelayLine):
         response = self.serial_command(cmd)
         return response
 
-    def get_step(self):
-        cmd = "S?"
-        response = self.serial_command(cmd)
-        step = response.split("Done")[0].split(":")[1]
-        return int(step)
-
     def write_to_flash(self):
         cmd = "OW"
         response = self.serial_command(cmd)
