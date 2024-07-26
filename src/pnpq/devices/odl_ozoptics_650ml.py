@@ -4,6 +4,7 @@
 import serial
 from serial import Serial
 from pnpq.devices.optical_delay_line import OpticalDelayLine
+from pnpq.errors import OdlGetPosNotCompleted
 import time
 
 
