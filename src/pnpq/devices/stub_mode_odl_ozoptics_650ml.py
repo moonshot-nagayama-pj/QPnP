@@ -37,7 +37,7 @@ class OdlOzOptics(OpticalDelayLine):
 
     def home(self):
         cmd = "FH"
-        return self.logger.info("Set to Home Parameter Value: "+cmd)
+        return self.logger.info(f"Set to Home Parameter Value: {cmd}")
 
     def get_serial(self):
         cmd = "V2"
