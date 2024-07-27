@@ -9,7 +9,7 @@ import time, logging
 class OdlOzOptics(OpticalDelayLine):
     def __init__(self):
         # Stub Serial Number
-        # TODO: Custom serial number from initalizer
+        # TODO: Custom serial number from initializer
         self.device_sn = "stubodl_ozoptics"
         """Basic Communication BaudRate"""
         self.resolution = 32768 / 5.08
