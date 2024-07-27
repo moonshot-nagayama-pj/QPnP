@@ -1,5 +1,5 @@
 #
-# Thorlanbs ODL module driver
+# Thorlabs ODL module driver
 #       Brushless Motor Driver: KBD101
 #       Stage:                  DDS100/M
 #       Stub mode:              True
