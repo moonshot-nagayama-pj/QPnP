@@ -63,7 +63,7 @@ class OdlThorlabs(OpticalDelayLine):
 
     def __ensure_port_open(self) -> None:
         if not self.connected:
-            self.logger.warning("Device not connected")
+            self.logger.error("Device not connected")
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def __ensure_steps_in_range(self, steps: int) -> None:
