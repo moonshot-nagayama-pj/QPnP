@@ -1,6 +1,5 @@
 #
 # OzOptics ODL module driver
-# Stub mode:    True
 #
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 import time, logging
