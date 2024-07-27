@@ -46,7 +46,7 @@ class OdlOzOptics(OpticalDelayLine):
 
     def get_device_info(self):
         cmd = "V1"
-        self.logger.info("Get Device Info Parameter Value: "+cmd)
+        self.logger.info("Get Device Info Parameter Value: " + cmd)
         return self.logger.info(self.device_sn)
 
     def get_mfg_date(self):
