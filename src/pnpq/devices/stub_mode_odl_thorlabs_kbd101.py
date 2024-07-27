@@ -2,7 +2,6 @@
 # Thorlabs ODL module driver
 #       Brushless Motor Driver: KBD101
 #       Stage:                  DDS100/M
-#       Stub mode:              True
 #
 import time, logging
 from pnpq.devices.optical_delay_line import OpticalDelayLine
