@@ -140,12 +140,12 @@ class OdlThorlabsStub(OpticalDelayLine):
         """Move forward by a specified number of steps"""
         self.__ensure_port_open()
         self.__ensure_steps_in_range(steps)
-        self.__ensure_final_in_range(self.currrent_steps, steps)
+        self.__ensure_final_in_range(self.current_position, steps)
         if not self.__stub_check_channel(1):
             # Do nothing if channel is not enabled
             return
         self.logger.info(f"Step forward position_steps: {steps}")
-        self.currrent_steps += steps
+        self.current_position += steps
         # Delay to simulate move forward (for now: v=1ms/step)
         time.sleep(abs(steps) / 1000)
         # TODO: Return a fake reply from the device
@@ -168,12 +168,12 @@ class OdlThorlabsStub(OpticalDelayLine):
         self.__ensure_steps_in_range(steps)
         # negate steps
         steps = -steps
-        self.__ensure_final_in_range(self.currrent_steps, steps)
+        self.__ensure_final_in_range(self.current_position, steps)
         if not self.__stub_check_channel(1):
             # Do nothing if channel is not enabled
             return
         self.logger.info(f"Step backward position_steps: {-steps}")
-        self.currrent_steps += steps
+        self.current_position += steps
         # Delay to simulate move forward (for now: v=1ms/step)
         time.sleep(abs(steps) / 1000)
         # TODO: Return a fake reply from the device
