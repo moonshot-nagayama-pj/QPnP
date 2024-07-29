@@ -49,7 +49,7 @@ class OdlOzOptics(OpticalDelayLine):
         return response
 
     def get_step(self) -> int:
-        response = self.serial_command(f"S?")
+        response = self.serial_command("S?")
         if "UNKNOWN" in response:
             raise OdlGetPosNotCompleted(
                 f"Unknown position for ODL({self}): run find_home() first and then change or get the position"
