@@ -48,7 +48,7 @@ class OdlOzOptics(OpticalDelayLine):
         response = self.serial_command(cmd)
         return response
 
-    def get_step(self):
+    def get_step(self) -> int:
         response = self.serial_command(f"S?")
         if "UNKNOWN" in response:
             raise OdlGetPosNotCompleted(
