@@ -4,6 +4,7 @@
 import serial
 from serial import Serial
 from pnpq.devices.optical_delay_line import OpticalDelayLine
+from pnpq.errors import OdlGetPosNotCompleted
 import time
 
 
@@ -47,8 +48,14 @@ class OdlOzOptics(OpticalDelayLine):
         response = self.serial_command(cmd)
         return response
 
-    def current_step():
-        pass
+    def get_step(self) -> int:
+        response = self.serial_command("S?")
+        if "UNKNOWN" in response:
+            raise OdlGetPosNotCompleted(
+                f"Unknown position for ODL({self}): run find_home() first and then change or get the position"
+            )
+        step = response.split("Done")[0].split(":")[1]
+        return int(step)
 
     def home(self):
         cmd = "FH"
@@ -109,12 +116,6 @@ class OdlOzOptics(OpticalDelayLine):
         cmd = "S" + str(value)
         response = self.serial_command(cmd)
         return response
-
-    def get_step(self):
-        cmd = "S?"
-        response = self.serial_command(cmd)
-        step = response.split("Done")[0].split(":")[1]
-        return int(step)
 
     def write_to_flash(self):
         cmd = "OW"
