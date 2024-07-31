@@ -6,6 +6,7 @@ from serial import Serial
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import OdlGetPosNotCompleted
 import time
+import logging
 
 
 class OdlOzOptics(OpticalDelayLine):
@@ -22,7 +23,7 @@ class OdlOzOptics(OpticalDelayLine):
         """32768 steps per motor revolution(5.08 mm = 2xDistance Travel or mirror travel per pitch 0.1 inch)"""
 
         self.command_terminate = "\r\n"
-
+        self.logger = logging.getLogger(f"{self}")
         try:
             self.conn.open()
         except:
@@ -151,7 +152,7 @@ class OdlOzOptics(OpticalDelayLine):
         self.conn.flushOutput()  # flush output buffer, aborting current output and discard all that is in buffer
         self.conn.write(serial_cmd.encode())
 
-    def serial_read(self, retries=10):
+    def serial_read(self, retries=100):
         # The Python serial "in_waiting" property is the count of bytes available
         # for reading at the serial port.  If the value is greater than zero
         # then we know we have content available.
@@ -164,11 +165,19 @@ class OdlOzOptics(OpticalDelayLine):
                 got_OK = True
             time.sleep(0.05)
             retries -= 1
+
+        if not got_OK:
+            # means command did not complete before soft timeout!
+            raise RuntimeError(
+                "reading from the device did not complete (soft timeout occured!"
+            )
+
+        self.logger.debug("Device response: %s", device_output)
         return device_output
 
     def serial_command(self, serial_cmd, retries=5):
         self.serial_send(serial_cmd + self.command_terminate)
-        device_output = self.serial_read(retries)
+        device_output = self.serial_read()
         return device_output
 
     def readKey(self, key, retries=5):
