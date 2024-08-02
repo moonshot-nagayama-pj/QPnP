@@ -21,6 +21,7 @@ class OdlOzOptics(OpticalDelayLine):
         """Basic Communication BaudRate"""
         self.resolution = 32768 / 5.08
         """32768 steps per motor revolution(5.08 mm = 2xDistance Travel or mirror travel per pitch 0.1 inch)"""
+        self.conn.timeout = 4
 
         self.command_terminate = "\r\n"
         self.logger = logging.getLogger(f"{self}")
@@ -60,7 +61,7 @@ class OdlOzOptics(OpticalDelayLine):
 
     def home(self):
         cmd = "FH"
-        response = self.serial_command(cmd, retries=1000)
+        response = self.serial_command(cmd)
         return response
 
     def get_serial(self):
@@ -100,12 +101,12 @@ class OdlOzOptics(OpticalDelayLine):
 
     def forward(self):
         cmd = "GF"
-        response = self.serial_command(cmd, retries=15)
+        response = self.serial_command(cmd)
         return response
 
     def reverse(self):
         cmd = "GR"
-        response = self.serial_command(cmd, retries=15)
+        response = self.serial_command(cmd)
         return response
 
     def stop(self):
@@ -152,30 +153,21 @@ class OdlOzOptics(OpticalDelayLine):
         self.conn.flushOutput()  # flush output buffer, aborting current output and discard all that is in buffer
         self.conn.write(serial_cmd.encode())
 
-    def serial_read(self, retries=100):
+    def serial_read(self):
         # The Python serial "in_waiting" property is the count of bytes available
         # for reading at the serial port.  If the value is greater than zero
         # then we know we have content available.
         device_output = ""
-        got_OK = False
-        while self.conn.in_waiting > 0 or (got_OK is False and retries > 0):
-            device_output += (self.conn.read(self.conn.in_waiting)).decode("iso-8859-1")
-            # command output is complete.
-            if device_output.find("Done") >= 0:
-                got_OK = True
-            time.sleep(0.05)
-            retries -= 1
-
-        if not got_OK:
-            # means command did not complete before soft timeout!
-            raise RuntimeError(
-                "reading from the device did not complete (soft timeout occured!"
-            )
-
-        self.logger.debug("Device response: %s", device_output)
+        device_output += (self.conn.read_until(expected=bytearray(b"Done"))).decode(
+            "iso-8859-1"
+        )
+        if "Done" in device_output:
+            self.logger.debug("Device read successful: %s", device_output)
+        else:
+            raise RuntimeError("Reading from the device failed (Timeout)!")
         return device_output
 
-    def serial_command(self, serial_cmd, retries=5):
+    def serial_command(self, serial_cmd):
         self.serial_send(serial_cmd + self.command_terminate)
         device_output = self.serial_read()
         return device_output
