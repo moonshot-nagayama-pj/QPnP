@@ -21,7 +21,7 @@ class OdlOzOptics(OpticalDelayLine):
         """Basic Communication BaudRate"""
         self.resolution = 32768 / 5.08
         """32768 steps per motor revolution(5.08 mm = 2xDistance Travel or mirror travel per pitch 0.1 inch)"""
-        self.conn.timeout = 4
+        self.conn.timeout = 10
 
         self.command_terminate = "\r\n"
         self.logger = logging.getLogger(f"{self}")
@@ -154,16 +154,11 @@ class OdlOzOptics(OpticalDelayLine):
         self.conn.write(serial_cmd.encode())
 
     def serial_read(self):
-        # The Python serial "in_waiting" property is the count of bytes available
-        # for reading at the serial port.  If the value is greater than zero
-        # then we know we have content available.
-        device_output = ""
-        device_output += (self.conn.read_until(expected=bytearray(b"Done"))).decode(
+        device_output = (self.conn.read_until(expected=bytearray(b"Done"))).decode(
             "iso-8859-1"
         )
-        if "Done" in device_output:
-            self.logger.debug("Device read successful: %s", device_output)
-        else:
+        self.logger.debug("Device read successful: %s", device_output)
+        if "Done" not in device_output:
             raise RuntimeError("Reading from the device failed (Timeout)!")
         return device_output
 
