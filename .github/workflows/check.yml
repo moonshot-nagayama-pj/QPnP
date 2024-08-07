@@ -1,0 +1,30 @@
+# Automatically run semantic checks, linters, and unit tests
+
+name: Code Checks
+
+on:
+  # pull_requests:
+  workflow_dispatch:
+
+jobs:
+  check-codes:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install other dependencies
+      run: |
+        chmod +x ./bin/install-dependencies.bash
+        ./bin/install-dependencies.bash
+
+    - name: Install rye
+      run: |
+        chmod +x ./bin/install-rye.bash
+        ./bin/install-rye.bash "/tmp/rye"
+
+    - name: Run check script
+      run: |
+        chmod +x ./bin/check.bash
+        ./bin/check.bash
