@@ -49,7 +49,7 @@ source .venv/bin/activate
 
 # Run black check
 stdmsg "Checking Python code formatting with black..."
-# black --check --diff src tests
+black --check --diff src tests
 
 # Shell check
 # Recursively loop through all files and find all files with .sh extension and run shellcheck
@@ -62,7 +62,7 @@ shfmt --diff --simplify .
 
 # Run linter
 stdmsg "Running Python linter..."
-# rye lint
+rye lint
 
 # Run unit tests
 stdmsg "Running unit tests..."
