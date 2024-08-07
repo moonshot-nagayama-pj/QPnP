@@ -9,7 +9,7 @@ import pytest
 
 @pytest.mark.parametrize("f,argc", [("identify", 0), ("home", 0), ("auto_update_start", 0), ("auto_update_stop", 0), ("disable_channel", 1), ("enable_channel", 1), ("rotate", 1), ("getpos", 0), ("step_forward", 1), ("step_backward", 1), ("rotate_relative", 1), ("custom_home", 1), ("custom_rotate", 1)])
 def test_access_without_connection(f, argc):
-    wp = WaveplateStub()
+    wp = WaveplateStub() # noqa: F841
     with pytest.raises(DeviceDisconnectedError):
         # Since the device is not connected, all methods should raise DeviceDisconnectedError
         # For simplicity, 1 is passed as argument for all methods, the value should be small enough to not raise any other errors
