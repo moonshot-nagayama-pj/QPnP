@@ -31,8 +31,8 @@ trap_exit() {
 trap trap_exit EXIT
 
 # Update package list and install curl and shellcheck
-apt-get update
-apt-get install curl shellcheck -y
+sudo apt-get update
+sudo apt-get install curl shellcheck -y
 
 # Install shfmt
 download_dir=$(mktemp -d 'shfmt.XXXXXXXX')
