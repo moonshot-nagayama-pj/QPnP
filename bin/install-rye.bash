@@ -70,7 +70,7 @@ chmod u+x "${installer_path}"
 # Add rye to PATH for Github Actions (persist path)
 # shellcheck disable=SC2310
 if is_set GITHUB_ENV; then
-  # shellcheck disable=SC1090
+  # shellcheck disable=SC1090,SC1091
   source "${HOME}/.rye/env"
   # Write the new path to Github env
   # shellcheck disable=SC2154

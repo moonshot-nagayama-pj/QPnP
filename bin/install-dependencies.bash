@@ -48,7 +48,8 @@ curl --location \
 # Get the first part of the shasum string for the correct file, which is formatted as "<checksum> <filename>"
 shasum_str=$(grep "${exec_name}" "${sha256_path}" | cut -d ' ' -f 1)
 # Write it back to the file for comparison
-stdmsg "${shasum_str}" > "${sha256_path}"
+stdmsg "${shasum_str}" >"${sha256_path}"
+# shellcheck disable=SC2312
 sha256sum --check <(stdmsg "$(<"${sha256_path}") ${exec_path}")
 mv "${exec_path}" /usr/local/bin/shfmt
 chmod +x /usr/local/bin/shfmt
