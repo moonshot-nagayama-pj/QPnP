@@ -51,10 +51,10 @@ source .venv/bin/activate
 stdmsg "Checking Python code formatting with black..."
 black --check --diff src tests
 
-# shellcheck
+# Run shellcheck
 # Recursively loop through all files and find all files with .sh extension and run shellcheck
 stdmsg "Checking shell scripts with shellcheck..."
-find . -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --source-path .:"${HOME}" --enable=all --external-sources
+find . -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --enable=all --external-sources
 
 # shfmt
 stdmsg "Checking Shell scripts formatting with shfmt..."

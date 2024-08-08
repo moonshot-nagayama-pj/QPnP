@@ -54,16 +54,11 @@ installer_path="${gzip_path%.gz}"
 
 rm -f "${gzip_path}" "${sha256_path}" "${installer_path}"
 
-# wget has better compatibility than curl
-wget --directory-prefix="${download_dir}" \
+curl --location \
+  --output-dir "${download_dir}" \
+  --remote-name-all \
   "https://github.com/astral-sh/rye/releases/latest/download/${sha256_name}" \
   "https://github.com/astral-sh/rye/releases/latest/download/${gzip_name}"
-
-# curl --location \
-#   --output-dir "${download_dir}" \
-#   --remote-name-all \
-#   "https://github.com/astral-sh/rye/releases/latest/download/${sha256_name}" \
-#   "https://github.com/astral-sh/rye/releases/latest/download/${gzip_name}"
 
 # shellcheck disable=SC2312
 sha256sum --check <(stdmsg "$(<"${sha256_path}") ${gzip_path}")
@@ -75,6 +70,7 @@ chmod u+x "${installer_path}"
 # Add rye to PATH for Github Actions (persist path)
 # shellcheck disable=SC2310
 if is_set GITHUB_ENV; then
+  # shellcheck disable=SC1090
   source "${HOME}/.rye/env"
   # Write the new path to Github env
   # shellcheck disable=SC2154

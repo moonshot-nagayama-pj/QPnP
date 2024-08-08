@@ -30,25 +30,25 @@ trap_exit() {
 }
 trap trap_exit EXIT
 
-# Returns 0 if the environment variable is set to any value including
-# null, 1 otherwise.
-is_set() {
-  [[ -n ${!1+x} ]]
-}
-
-# Update package list
+# Update package list and install curl and shellcheck
 apt-get update
-
-# Install wget and shellcheck
-apt-get update
-apt-get install wget xz-utils -y
-
-# Install shellcheck
-wget https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.aarch64.tar.xz --output-document /tmp/shellcheck.tar.xz
-tar xJf /tmp/shellcheck.tar.xz --directory /tmp
-mv /tmp/shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
-rm -rf /tmp/shellcheck-v0.10.0 /tmp/shellcheck.tar.xz
+apt-get install curl shellcheck -y
 
 # Install shfmt
-wget https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64 --output-document /usr/local/bin/shfmt
+download_dir=$(mktemp -d 'shfmt.XXXXXXXX')
+exec_name="shfmt_v3.8.0_linux_amd64"
+exec_path="${download_dir}"/"${exec_name}"
+sha256_name="sha256sums.txt"
+sha256_path="${download_dir}"/"${sha256_name}"
+curl --location \
+  --output-dir "${download_dir}" \
+  --remote-name-all \
+  "https://github.com/mvdan/sh/releases/download/v3.8.0/${sha256_name}" \
+  "https://github.com/mvdan/sh/releases/download/v3.8.0/${exec_name}"
+# Get the first part of the shasum string for the correct file, which is formatted as "<checksum> <filename>"
+shasum_str=$(grep "${exec_name}" "${sha256_path}" | cut -d ' ' -f 1)
+# Write it back to the file for comparison
+stdmsg "${shasum_str}" > "${sha256_path}"
+sha256sum --check <(stdmsg "$(<"${sha256_path}") ${exec_path}")
+mv "${exec_path}" /usr/local/bin/shfmt
 chmod +x /usr/local/bin/shfmt

@@ -8,7 +8,7 @@ on:
 
 jobs:
   check-codes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout repository
@@ -16,15 +16,12 @@ jobs:
 
     - name: Install other dependencies
       run: |
-        chmod +x ./bin/install-dependencies.bash
         ./bin/install-dependencies.bash
 
     - name: Install rye
       run: |
-        chmod +x ./bin/install-rye.bash
         ./bin/install-rye.bash "$(mktemp -d 'rye-install.XXXXXXXX')"
 
     - name: Run check script
       run: |
-        chmod +x ./bin/check.bash
         ./bin/check.bash || true
