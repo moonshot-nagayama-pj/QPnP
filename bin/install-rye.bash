@@ -72,12 +72,10 @@ gunzip "${gzip_path}"
 chmod u+x "${installer_path}"
 "${installer_path}" self install --yes || true
 
-# Add rye into PATH
-source "${HOME}/.rye/env"
-
 # Add rye to PATH for Github Actions (persist path)
 # shellcheck disable=SC2310
 if is_set GITHUB_ENV; then
+  source "${HOME}/.rye/env"
   # Write the new path to Github env
   # shellcheck disable=SC2154
   stdmsg "PATH=${PATH}" >>"${GITHUB_ENV}"

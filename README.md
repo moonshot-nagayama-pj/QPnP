@@ -2,7 +2,7 @@
 Plug and Play with Quantum!
 PnPQ is a python library package for controlling optical devices in quantum networks
 
-## Requirement
+## Prerequisites
 
 Install (rye)[https://rye.astral.sh/].
 
@@ -14,7 +14,7 @@ Instead, unit tests are available, and can be executed with: `rye test`.
 
 ## Making Contributions
 
-Before you commit, ensure that `check.sh` does not output any error. This script checks for formatting errors as well as semantics in Python and shell scripts.
+Before you commit, ensure that `check.bash` does not output any error. This script checks for formatting errors as well as semantics in Python and shell scripts.
 
 ### Formatting
 

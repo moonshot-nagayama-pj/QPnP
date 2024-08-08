@@ -22,17 +22,17 @@ trap_exit() {
   local exit_status="$?"
 
   if [[ ${exit_status} -ne 0 ]]; then
-    errmsg 'Errors are found in one or more files. Please fix them before committing.'
-    exit 1
+    errmsg 'The script did not complete successfully.'
+    errmsg 'The exit code was '"${exit_status}"
   fi
 }
 trap trap_exit EXIT
 
 base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd -P)"
-project_dir="${base_dir}"/..
+project_dir="$(cd "${base_dir}/.." >/dev/null && pwd -P)"
 
 # cd to the directory before running rye
-cd "${project_dir}" || exit 1
+cd "${project_dir}"
 
 # Check rye version (and whether it's installed or not)
 # stdmsg "Checking if rye is installed..."
@@ -51,9 +51,9 @@ source .venv/bin/activate
 stdmsg "Checking Python code formatting with black..."
 black --check --diff src tests
 
-# Shell check
+# shellcheck
 # Recursively loop through all files and find all files with .sh extension and run shellcheck
-stdmsg "Checking Shell scripts with shellcheck..."
+stdmsg "Checking shell scripts with shellcheck..."
 find . -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --source-path .:"${HOME}" --enable=all --external-sources
 
 # shfmt
