@@ -32,4 +32,4 @@ trap trap_exit EXIT
 
 # Update package list and install shfmt (other dependencies are built-in)
 sudo apt-get update
-sudo apt-get install golang-mvdan-sh -y
+sudo apt-get install shfmt -y
