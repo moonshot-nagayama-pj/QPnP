@@ -12,7 +12,7 @@ def connected_switch():
 
 @pytest.mark.parametrize("f", [("bar_state"), ("cross")])
 def test_access_without_connection(f):
-    switch = Switch()
+    switch = Switch() # noqa: F841
     with pytest.raises(DeviceDisconnectedError):
         eval(f"switch.{f}()")
 
