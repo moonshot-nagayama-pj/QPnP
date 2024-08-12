@@ -1,8 +1,5 @@
-#
 # OzOptics ODL module driver
-#
-import serial
-from serial import Serial
+
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import OdlGetPosNotCompleted
 import time
@@ -23,10 +20,7 @@ class OdlOzOptics(OpticalDelayLine):
 
         self.command_terminate = "\r\n"
 
-        try:
-            self.conn.open()
-        except:
-            raise RuntimeError("Can not open OZ optic ODL device")
+        self.conn.open()
 
     def connect(self):
         if self.conn.is_open == 0:

@@ -21,7 +21,7 @@ def get_available_port(device_serial_number: str) -> str | None:
 
 
 def check_usb_hub_connected() -> bool:
-    logger.debug(f"check_usb_hub_connected")
+    logger.debug("check_usb_hub_connected")
     available_ports = list_comports()
     for port in available_ports:
         pair_tuple = (port.vid, port.pid)

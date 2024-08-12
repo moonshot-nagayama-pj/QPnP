@@ -2,15 +2,10 @@ import logging
 import time
 
 from pnpq.errors import (
-    DevicePortNotFoundError,
     DeviceDisconnectedError,
-    WavePlateMoveNotCompleted,
-    WavePlateHomedNotCompleted,
-    WavePlateGetPosNotCompleted,
     WavePlateCustomRotateError,
     WaveplateInvalidStepsError,
     WaveplateInvalidDegreeError,
-    WaveplateEnableChannelError,
     WaveplateInvalidMotorChannelError,
 )
 
