@@ -24,4 +24,4 @@ jobs:
 
     - name: Run check script
       run: |
-        ./bin/check.bash || true
+        ./bin/check.bash
