@@ -1,4 +1,5 @@
-import time, logging
+import logging
+import time
 from serial import Serial
 
 from pnpq.errors import (
@@ -108,7 +109,7 @@ class Waveplate:
 
             # the sequence is found
             if num_read_bytes > 0 and result.find(sequence) != -1:
-                self.logger.debug(f"The sequence found")
+                self.logger.debug("The sequence found")
                 return result
 
             time.sleep(1)
@@ -177,7 +178,7 @@ class Waveplate:
         self.__ensure_port_open()
 
         if chanid >= self.max_channel:
-            raise WavePlateInvalidMotorChannelError(
+            raise WaveplateInvalidMotorChannelError(
                 f"Invalid channel ID specified: {chanid}. it must be 0 in K10CR1/M"
             )
         msg = b"\x10\x02\x00\x02\x50\x01"
@@ -189,7 +190,7 @@ class Waveplate:
         self.__ensure_port_open()
 
         if chanid >= self.max_channel:
-            raise WavePlateInvalidMotorChannelError(
+            raise WaveplateInvalidMotorChannelError(
                 f"Invalid channel ID specified: {chanid}. It must be in 0 for K10CR1/M"
             )
 
@@ -233,7 +234,7 @@ class Waveplate:
         if result is None:
             self.logger.error("getpos command is not completed")
             raise WavePlateGetPosNotCompleted(
-                f"No update response has been received for determining the position"
+                "No update response has been received for determining the position"
             )
 
         else:

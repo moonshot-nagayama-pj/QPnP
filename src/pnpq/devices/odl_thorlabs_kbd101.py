@@ -3,13 +3,11 @@
 #       Brushless Motor Driver: KBD101
 #       Stage:                  DDS100/M
 #
-import serial
-import time, logging
-from serial import Serial
+import logging
+import time
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 
 from pnpq.errors import (
-    DevicePortNotFoundError,
     DeviceDisconnectedError,
     OdlMoveNotCompleted,
     OdlHomeNotCompleted,
@@ -101,7 +99,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.conn.open()
 
         if not self.conn.is_open:
-            raise DeviceDisconnectedError(f"ODL device is disconneced")
+            raise DeviceDisconnectedError("ODL device is disconneced")
         self.logger.info(f"({self}): Connecting to Thorlabs ODL module")
         # Enable Channel ID (0)
         self.conn.write(ENABLE_CHANNEL_SET_COMMAND)
@@ -109,7 +107,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.conn.write(ENABLE_CHANNEL_GET_COMMAND)
         enable_channel_result = self.__wait_for_reply(b"\x12\x02", 5)
         if enable_channel_result is None:
-            self.logger.error(f"can not enable odl channel")
+            self.logger.error("cannot enable odl channel")
 
     def identify(self) -> None:
         self.__ensure_port_open()
@@ -145,7 +143,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         move_result = self.__wait_for_reply(b"\x64\04", self.move_timeout)
         if not move_result:
-            self.logger.error(f"move command is not completed")
+            self.logger.error("move command is not completed")
             # raise OdlMoveNotCompleted(
             #    f"ODL({self}): No moved_completed response has been received"
             # )
@@ -164,7 +162,7 @@ class OdlThorlabs(OpticalDelayLine):
         forward_result = self.__wait_for_reply(b"\x64\x04", self.move_timeout)
 
         if not forward_result:
-            self.logger.error(f"step forward command is not completed")
+            self.logger.error("step forward command is not completed")
             raise OdlMoveNotCompleted(
                 f"ODL({self}: No response is received for step_forward command)"
             )
@@ -198,7 +196,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         backward_result = self.__wait_for_reply(b"\x64\x04", self.move_timeout)
         if not backward_result:
-            self.logger.error(f"step backward command is not completed")
+            self.logger.error("step backward command is not completed")
             raise OdlMoveNotCompleted(
                 f"ODL{self}: No response is received for step_backward command"
             )

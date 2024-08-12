@@ -1,6 +1,5 @@
 from serial.tools.list_ports import comports as list_comports
 import logging
-import usb
 
 logger = logging.getLogger("utils")
 

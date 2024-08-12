@@ -1,8 +1,7 @@
 import logging
 
-from pnpq.errors import (
-    DeviceDisconnectedError,
-)
+from pnpq.errors import DeviceDisconnectedError
+
 
 class Switch:
     """Stub Switch Device Class"""

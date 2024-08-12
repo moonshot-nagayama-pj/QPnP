@@ -1,10 +1,6 @@
-#
-#  Copyright (C) 2024 Moontshot Nagayama Project
-#
-
 "Python interface for Controlling Optical Devices in Quantum Networks"
 __version__ = "0.0.1"
-from .devices import *
+from .devices import OpticalDelayLine, Switch, Waveplate
 
 __all__ = ["Waveplate", "Switch", "OpticalDelayLine"]
 

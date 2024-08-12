@@ -4,7 +4,6 @@
 #
 import serial
 from serial import Serial
-from serial.tools import list_ports
 
 
 class Switch:
@@ -30,8 +29,8 @@ class Switch:
                     self.conn.port = ports.device
                     find_Port = True
                     break
-            if find_Port == False:
-                raise Exception("Can not find Switch by serial_number (FTDI_SN)")
+            if not find_Port:
+                raise Exception("Cannot find Switch by serial_number (FTDI_SN)")
 
         # if config_file != 0:
         #    if find_Port:
