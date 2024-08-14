@@ -1,4 +1,4 @@
-from pnpq.devices.switch_thorlabs_osw1310E import Switch
+from pnpq.devices.switch_thorlabs_osw1310e import Switch
 
 import pytest
 
