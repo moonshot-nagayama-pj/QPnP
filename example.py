@@ -1,5 +1,5 @@
-from pnpq import OdlThorlabs
-from pnpq import OdlOzOptics
+from pnpq.devices.odl_ozoptics_650ml import OdlOzOptics
+from pnpq.devices.odl_thorlabs_kbd101 import OdlThorlabs
 
 print("hello world")
 # wp = Waveplate(serial_number='00AAABBB')
@@ -19,5 +19,5 @@ tlodl.connect()
 
 
 print(OdlOzOptics)
-# oz = OdlOzOptics(serial_number='CKBEe12CJ06')
-# oz.connect()
+oz = OdlOzOptics(serial_number='CKBEe12CJ06')
+oz.connect()

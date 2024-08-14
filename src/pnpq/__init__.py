@@ -1,10 +1,3 @@
-"Python interface for Controlling Optical Devices in Quantum Networks"
-__version__ = "0.0.1"
-from .devices import OpticalDelayLine, Switch, Waveplate
+"""Python library to control hardware used in quantum optical testbeds."""
 
-__all__ = ["Waveplate", "Switch", "OpticalDelayLine"]
-
-
-class pnpq:
-    def __init__(self):
-        pass
+__version__ = "0.1.0"
