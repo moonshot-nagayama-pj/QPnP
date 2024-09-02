@@ -50,16 +50,15 @@ class OdlThorlabs(OpticalDelayLine):
     auto_update: bool
     """a flag for checking automatic update is active or inactive"""
 
-    currrent_steps: int | None
+    current_steps: int
     """current position of optical delay line in steps"""
 
     def __init__(
         self,
         serial_port: str | None = None,
         serial_number: str | None = None,
-        config_file=None,
     ):
-        super().__init__(serial_port, serial_number, config_file)
+        super().__init__(serial_port, serial_number)
         self.name = "Thorlabs"
         self.model = "KBD101 driver DDS100/M Stage"
         self.conn.baudrate = 115200
@@ -113,7 +112,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.__ensure_port_open()
         self.conn.write(ODL_IDENTIFY_COMMAND)
 
-    def __wait_for_reply(self, sequence: bytes | None, timeout: int) -> bytes | None:
+    def __wait_for_reply(self, sequence: bytes, timeout: int) -> bytes | None:
         retries = timeout
         result = b""
         while retries > 0:
@@ -122,13 +121,17 @@ class OdlThorlabs(OpticalDelayLine):
             result = self.conn.read(num_read_bytes)
 
             self.logger.debug(
-                f"ODL wait for reply: {sequence}, results: {result}, retry count: {retries}"
+                "ODL wait for reply: %s, results: %s, retry count: %s",
+                sequence,
+                result,
+                retries,
             )
             if num_read_bytes > 0 and result.find(sequence) != -1:
-                self.logger.info(f"The response found: {result} ")
+                self.logger.info("The response found: %s", result)
                 return result
             time.sleep(1)
             retries -= 1
+        return None
 
     def move(self, move_mm: int) -> None:
         move_steps = move_mm * self.resolution
@@ -147,13 +150,13 @@ class OdlThorlabs(OpticalDelayLine):
             # raise OdlMoveNotCompleted(
             #    f"ODL({self}): No moved_completed response has been received"
             # )
-        self.currrent_steps = move_steps
-        self.logger.debug(f"Move completed position_steps({self.currrent_steps})!")
+        self.current_steps = move_steps
+        self.logger.debug(f"Move completed position_steps({self.current_steps})!")
 
     def step_forward(self, steps: int) -> None:
         self.__ensure_port_open()
         self.__ensure_steps_in_range(steps)
-        self.__ensure_final_in_range(self.currrent_steps, steps)
+        self.__ensure_final_in_range(self.current_steps, steps)
 
         msg = ODL_RELATIVE_MOVE_COMMAND + (int(steps)).to_bytes(
             4, byteorder="little", signed=True
@@ -166,7 +169,7 @@ class OdlThorlabs(OpticalDelayLine):
             raise OdlMoveNotCompleted(
                 f"ODL({self}: No response is received for step_forward command)"
             )
-        self.currrent_steps += steps
+        self.current_steps += steps
 
     def __ensure_final_in_range(self, current_position: int, steps: int) -> None:
 
@@ -186,7 +189,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         # negate steps
         steps = -steps
-        self.__ensure_final_in_range(self.currrent_steps, steps)
+        self.__ensure_final_in_range(self.current_steps, steps)
 
         # relative move
         msg = ODL_RELATIVE_MOVE_COMMAND + (int(steps)).to_bytes(
@@ -200,7 +203,7 @@ class OdlThorlabs(OpticalDelayLine):
             raise OdlMoveNotCompleted(
                 f"ODL{self}: No response is received for step_backward command"
             )
-        self.currrent_steps += steps
+        self.current_steps += steps
 
     def auto_update_start(self) -> bytes | None:
         self.logger.info("call auto update start cmd")
@@ -208,7 +211,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.conn.write(START_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x91\x04", self.move_timeout)
 
-        self.logger.debug(f"auto_update_start result: {result}")
+        self.logger.debug("auto_update_start result: %s", result)
         if result is None:
             self.logger.warning("auto update start command is not completed")
         else:
@@ -222,7 +225,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.conn.write(STOP_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x91\x04", 2)
 
-        self.logger.debug(f"auto_update_stop result: {result}")
+        self.logger.debug("auto_update_stop result: %s", result)
         if result is not None:
             self.logger.warning("auto update stop command is not completed")
         else:
@@ -234,7 +237,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.__ensure_port_open()
         self.conn.write(MGMSG_MOT_REQ_USTATUSUPDATE)
         result = self.__wait_for_reply(b"\x91\x04", self.move_timeout)
-        self.logger.debug(f"getpos all byte sequence results: {result}")
+        self.logger.debug("getpos all byte sequence results: %s", result)
 
         if result is None:
             self.logger.error("getpos command is not completed")
@@ -243,12 +246,12 @@ class OdlThorlabs(OpticalDelayLine):
             )
 
         pos_seq = result[8:12]
-        self.logger.debug(f"getpos byte result: {pos_seq}")
+        self.logger.debug("getpos byte result: %s", pos_seq)
 
         steps = int.from_bytes(pos_seq, byteorder="little")
         position = steps / self.resolution
         self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
-        self.currrent_steps = steps
+        self.current_steps = steps
         return steps
 
     def home(self) -> bytes | None:
@@ -258,11 +261,11 @@ class OdlThorlabs(OpticalDelayLine):
         time.sleep(0.5)
 
         homed = self.__wait_for_reply(b"\x44\x04", self.home_timeout)
-        self.logger.debug(f"home result: {homed}")
+        self.logger.debug("home result: %s", homed)
         if homed is None:
             self.logger.error("home command is not completed in ODL")
             raise OdlHomeNotCompleted(f"Odl{self}: Homed response can not be received")
-        self.currrent_steps = ODL_HOMED_POSITION
+        self.current_steps = ODL_HOMED_POSITION
         return homed
 
 

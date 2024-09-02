@@ -21,8 +21,9 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 dev-dependencies = [
-    "pytest>=8.3.2",
     "black>=24.8.0",
+    "mypy>=1.11.2",
+    "pytest>=8.3.2",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -33,3 +34,11 @@ allow-direct-references = true
 
 [tool.hatch.version]
 path = "src/pnpq/__init__.py"
+
+[tool.mypy]
+files = ["."]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "serial.*"
+ignore_missing_imports = true

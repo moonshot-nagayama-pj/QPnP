@@ -15,8 +15,10 @@ click==8.1.7
     # via black
 iniconfig==2.0.0
     # via pytest
+mypy==1.11.2
 mypy-extensions==1.0.0
     # via black
+    # via mypy
 packaging==23.2
     # via black
     # via pytest
@@ -29,3 +31,5 @@ pluggy==1.5.0
 pyserial==3.5
     # via pnpq
 pytest==8.3.2
+typing-extensions==4.12.2
+    # via mypy

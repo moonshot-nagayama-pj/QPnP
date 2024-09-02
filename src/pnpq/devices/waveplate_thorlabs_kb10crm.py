@@ -104,7 +104,10 @@ class Waveplate:
 
             result = self.conn.read(num_read_bytes)
             self.logger.debug(
-                f"try to find sequence: {sequence}, results: {result}, retry count: {retries}"
+                "try to find sequence: %s, results: %s, retry count: %s",
+                sequence,
+                result,
+                retries,
             )
 
             # the sequence is found
@@ -114,6 +117,7 @@ class Waveplate:
 
             time.sleep(1)
             retries -= 1
+        return None
 
     def connect(self) -> None:
         self.logger.info("connecting...")
@@ -139,7 +143,7 @@ class Waveplate:
         time.sleep(0.5)
 
         result = self.__wait_for_reply(b"\x44\x04", 20)
-        self.logger.debug(f"home result: {result}")
+        self.logger.debug("home result: %s", result)
         if result is None:
             self.logger.error("home command is not completed")
             raise WavePlateHomedNotCompleted(
@@ -147,26 +151,26 @@ class Waveplate:
             )
         return result
 
-    def auto_update_start(self) -> bytes:
+    def auto_update_start(self) -> bytes | None:
         self.logger.info("cal auto update start cmd")
         self.__ensure_port_open()
         self.conn.write(START_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
 
-        self.logger.debug(f"auto_update_start result: {result}")
+        self.logger.debug("auto_update_start result: %s", result)
         if result is None:
             self.logger.warn("auto update start command is not completed")
         else:
             self.auto_update = True
         return result
 
-    def auto_update_stop(self) -> bytes:
+    def auto_update_stop(self) -> bytes | None:
         self.logger.info("cal auto update stop cmd")
         self.__ensure_port_open()
         self.conn.write(STOP_UPDATE_COMMAND)
         result = self.__wait_for_reply(b"\x81\x04", 1)
 
-        self.logger.debug(f"auto_update_stop result: {result}")
+        self.logger.debug("auto_update_stop result: %s", result)
         if result is not None:
             self.logger.warn("auto update stop command is not completed")
         else:
@@ -184,6 +188,7 @@ class Waveplate:
         msg = b"\x10\x02\x00\x02\x50\x01"
         self.conn.write(msg)
         time.sleep(0.1)
+        return None
 
     def enable_channel(self, chanid: int) -> bytes | None:
         self.logger.info("call enable_channel cmd")
@@ -206,7 +211,7 @@ class Waveplate:
 
         # Waiting for GET_CHANENABLESTATE
         # MGMSG_MOD_REG_CHANENABLESTATE 0x0212
-        self.logger.debug(f"enable channel result: {result}")
+        self.logger.debug("enable channel result: %s", result)
         if result is None:
             self.logger.error("enable_channel command is not complete")
             raise WaveplateEnableChannelError(f"Waveplate{self} enable channel failed")
@@ -224,7 +229,7 @@ class Waveplate:
         self.conn.write(msg)
 
         result = self.__wait_for_reply(b"\x81\x04", self.rotate_timeout)
-        self.logger.debug(f"getpos all byte sequence results: {result}")
+        self.logger.debug("getpos all byte sequence results: %s", result)
 
         if not self.auto_update:
             # MSMSG_HW_STOP_UPDATEMSGS 0x0012
@@ -239,7 +244,7 @@ class Waveplate:
 
         else:
             pos_seq = result[8:12]
-            self.logger.debug(f"getpos byte result: {pos_seq}")
+            self.logger.debug("getpos byte result: %s", pos_seq)
 
             steps = int.from_bytes(pos_seq, byteorder="little")
             position = steps / self.resolution
@@ -307,7 +312,7 @@ class Waveplate:
 
         return result
 
-    def rotate_relative(self, degree) -> bytes | None:
+    def rotate_relative(self, degree: float | int) -> bytes | None:
         self.logger.info(f"call rotate_relative cmd: degree={degree}")
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
@@ -326,7 +331,7 @@ class Waveplate:
 
         return result
 
-    def custom_home(self, degree):
+    def custom_home(self, degree: float | int) -> None:
         self.logger.info(f"call custom_home cmd: degree={degree}")
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
@@ -335,8 +340,8 @@ class Waveplate:
         self.relative_home = degree
         self.rotate(degree)
 
-    def custom_rotate(self, degree):
-        """Rotattion with customized home!"""
+    def custom_rotate(self, degree: float | int) -> None:
+        """Rotation with customized home!"""
 
         if not self.relative_home:
             self.logger.error(

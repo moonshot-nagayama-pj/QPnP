@@ -37,7 +37,7 @@ class WaveplateStub:
         self.connected: bool = False
 
         # Enabled channels (enable 1 by default, used internally)
-        self.enabled_channels: set = {1}
+        self.enabled_channels: set[int] = {1}
 
     def __ensure_port_open(self) -> None:
         if not self.connected:
