@@ -20,7 +20,7 @@ jobs:
 
     - name: Install rye
       run: |
-        ./bin/install-rye.bash "$(mktemp -d 'rye-install.XXXXXXXX')"
+        ./bin/install-rye.bash "$(mktemp --tmpdir -d 'rye-install.XXXXXXXX')"
 
     - name: Run check script
       run: |
