@@ -3,6 +3,7 @@
 #       OSW12-1310E & OSW22-1310E
 #
 import serial
+import serial.tools.list_ports
 from serial import Serial
 
 
@@ -16,7 +17,7 @@ class Switch:
         self.conn.baudrate = 115200
         self.conn.bytesize = 8
         self.conn.parity = "N"
-        self.conn.rtscts = 1
+        self.conn.rtscts = True
 
         self.port = serial_port
         self.conn.port = self.port

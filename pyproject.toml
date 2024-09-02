@@ -7,6 +7,7 @@ authors = [
 ]
 dependencies = [
     "pyserial>=3.5",
+    "types-pyserial>=3.5.0.20240826",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -38,7 +39,3 @@ path = "src/pnpq/__init__.py"
 [tool.mypy]
 files = ["."]
 strict = true
-
-[[tool.mypy.overrides]]
-module = "serial.*"
-ignore_missing_imports = true

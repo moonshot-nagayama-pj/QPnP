@@ -140,8 +140,8 @@ class OdlOzOptics(OpticalDelayLine):
 
     def serial_send(self, serial_cmd: str) -> None:
         # Encode and send the command to the serial device.
-        self.conn.flushInput()  # flush input buffer, discarding all its contents
-        self.conn.flushOutput()  # flush output buffer, aborting current output and discard all that is in buffer
+        self.conn.reset_input_buffer()  # flush input buffer, discarding all its contents
+        self.conn.reset_output_buffer()  # flush output buffer, aborting current output and discard all that is in buffer
         self.conn.write(serial_cmd.encode())
 
     def serial_read(self, retries: int = 10) -> str:
@@ -179,7 +179,7 @@ class OdlOzOptics(OpticalDelayLine):
     def readall(self, sectimeout: int = 5) -> tuple[bool, str]:
         ok = False
         bytes = self.conn.read(1)
-        while self.conn.inWaiting() > 0:
+        while self.conn.in_waiting > 0:
             bytes += self.conn.read(1)
         msg = bytes.decode("UTF-8")
         ok = True

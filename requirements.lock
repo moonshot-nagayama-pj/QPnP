@@ -12,3 +12,5 @@
 -e file:.
 pyserial==3.5
     # via pnpq
+types-pyserial==3.5.0.20240826
+    # via pnpq

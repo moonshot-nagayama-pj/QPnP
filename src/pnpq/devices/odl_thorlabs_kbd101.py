@@ -65,7 +65,7 @@ class OdlThorlabs(OpticalDelayLine):
         self.conn.bytesize = 8
         self.conn.stopbits = 1
         self.conn.parity = "N"
-        self.conn.rtscts = 1
+        self.conn.rtscts = True
 
         self.home_timeout = 25
         self.move_timeout = 4
