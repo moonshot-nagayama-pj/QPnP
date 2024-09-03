@@ -1,5 +1,4 @@
 from pnpq.devices.odl_ozoptics_650ml import OdlOzOptics
-from pnpq.devices.odl_thorlabs_kbd101 import OdlThorlabs
 
 print("hello world")
 # wp = Waveplate(serial_number='00AAABBB')

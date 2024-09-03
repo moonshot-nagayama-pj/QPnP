@@ -156,7 +156,7 @@ class OdlOzOptics(OpticalDelayLine):
             raise RuntimeError("Reading from the device failed (Timeout)!")
         return device_output
 
-    def serial_command(self, serial_cmd: str):
+    def serial_command(self, serial_cmd: str) -> str:
         self.serial_send(serial_cmd + self.command_terminate)
         device_output = self.serial_read()
         return device_output
