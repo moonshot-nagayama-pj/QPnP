@@ -1,11 +1,5 @@
-from pnpq import Waveplate
-from pnpq import Switch
-from pnpq import OdlThorlabs
-from pnpq import OdlOzOptics
-from pnpq.devices.optical_delay_line import OpticalDelayLine
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
+from pnpq.devices.odl_ozoptics_650ml import OdlOzOptics
+from pnpq.devices.odl_thorlabs_kbd101 import OdlThorlabs
 
 print("hello world")
 # wp = Waveplate(serial_number='00AAABBB')
@@ -26,6 +20,7 @@ print("hello world")
 
 print(OdlOzOptics)
 oz = OdlOzOptics(serial_number="CKBEe12CJ06")
+oz.connect()
 oz.home()
 oz.move(20)
 

@@ -1,7 +1,5 @@
-import serial
-import time
-from serial.tools import list_ports
 from serial import Serial
+import serial.tools.list_ports
 
 
 class OpticalDelayLine:
@@ -21,7 +19,6 @@ class OpticalDelayLine:
         self,
         port: str | None = None,
         serial_number: str | None = None,
-        config_file=None,
     ):
         if serial_number is None and port is None:
             raise RuntimeError("Not port name nor serial_number are specified!")

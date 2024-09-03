@@ -1,0 +1,27 @@
+# Automatically run semantic checks, linters, and unit tests
+
+name: Code Checks
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  check-codes:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install other dependencies
+      run: |
+        ./bin/install-dependencies.bash
+
+    - name: Install rye
+      run: |
+        ./bin/install-rye.bash "$(mktemp --tmpdir -d 'rye-install.XXXXXXXX')"
+
+    - name: Run check script
+      run: |
+        ./bin/check.bash

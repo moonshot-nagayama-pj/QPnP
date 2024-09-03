@@ -1,13 +1,13 @@
 [project]
 name = "pnpq"
-version = "0.1.0"
+dynamic = ["version"]
 description = "PnPQ is a python library package for controlling optical devices in quantum networks"
 authors = [
     { name = "Amin Taherkhani", email = "amin@sfc.wide.ad.jp" }
 ]
 dependencies = [
-    "pytest>=7.4.4",
     "pyserial>=3.5",
+    "types-pyserial>=3.5.0.20240826",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -21,10 +21,21 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "black>=24.8.0",
+    "mypy>=1.11.2",
+    "pytest>=8.3.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pnpq"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/pnpq"]
+[tool.hatch.version]
+path = "src/pnpq/__init__.py"
+
+[tool.mypy]
+files = ["."]
+strict = true

@@ -2,17 +2,13 @@ import logging
 import time
 
 from pnpq.errors import (
-    DevicePortNotFoundError,
     DeviceDisconnectedError,
-    WavePlateMoveNotCompleted,
-    WavePlateHomedNotCompleted,
-    WavePlateGetPosNotCompleted,
     WavePlateCustomRotateError,
     WaveplateInvalidStepsError,
     WaveplateInvalidDegreeError,
-    WaveplateEnableChannelError,
     WaveplateInvalidMotorChannelError,
 )
+
 
 class WaveplateStub:
     """Stub Waveplate Device Class"""
@@ -25,7 +21,7 @@ class WaveplateStub:
         # Resolution of the device in steps per degree
         self.resolution: int = 136533
         # Maximum steps the device can move (360 degrees)
-        self.max_steps: int = 136533*360
+        self.max_steps: int = 136533 * 360
         # Maximum channel the device can control
         self.max_channel: int = 1
         # Flag for auto updating device information
@@ -41,7 +37,7 @@ class WaveplateStub:
         self.connected: bool = False
 
         # Enabled channels (enable 1 by default, used internally)
-        self.enabled_channels: set = {1}
+        self.enabled_channels: set[int] = {1}
 
     def __ensure_port_open(self) -> None:
         if not self.connected:
@@ -51,12 +47,16 @@ class WaveplateStub:
     def __ensure_valid_steps(self, steps: int) -> None:
         if 0 <= steps <= self.max_steps:
             return
-        raise WaveplateInvalidStepsError(f"Invalid steps: {steps}. Steps must be in a range [0,{self.max_steps}]")
+        raise WaveplateInvalidStepsError(
+            f"Invalid steps: {steps}. Steps must be in a range [0,{self.max_steps}]"
+        )
 
     def __ensure_valid_degree(self, degree: float) -> None:
         if 0 <= degree <= 360:
             return
-        raise WaveplateInvalidDegreeError(f"Invalid degree: {degree}. Degree must be in a range [0,360]")
+        raise WaveplateInvalidDegreeError(
+            f"Invalid degree: {degree}. Degree must be in a range [0,360]"
+        )
 
     def __stub_check_channel(self, chanid: int) -> bool:
         return chanid in self.enabled_channels
@@ -139,7 +139,11 @@ class WaveplateStub:
         """Get the current position of the device in steps"""
         self.__ensure_port_open()
         self.logger.info("Stub Waveplate Get Position")
-        self.logger.info("Current Position: Steps: %s Degrees: %s", self.current_position, self.current_position / self.resolution)
+        self.logger.info(
+            "Current Position: Steps: %s Degrees: %s",
+            self.current_position,
+            self.current_position / self.resolution,
+        )
         return self.current_position
 
     def get_degree(self) -> float:
