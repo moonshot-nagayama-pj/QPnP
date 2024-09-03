@@ -4,6 +4,6 @@ from pnpq.errors import DevicePortNotFoundError
 import pytest
 
 
-def test_disconnected_initialization():
+def test_disconnected_initialization() -> None:
     with pytest.raises(DevicePortNotFoundError):
         Waveplate("ABC", "DEF")

@@ -47,6 +47,10 @@ rye sync
 stdmsg "Activating virtual environment..."
 source .venv/bin/activate
 
+# Run mypy type hint checker
+stdmsg "Checking Python type hints with mypy..."
+mypy
+
 # Run black check
 stdmsg "Checking Python code formatting with black..."
 black --check --diff src tests

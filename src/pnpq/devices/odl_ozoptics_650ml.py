@@ -10,9 +10,8 @@ class OdlOzOptics(OpticalDelayLine):
         self,
         serial_port: str | None = None,
         serial_number: str | None = None,
-        config_file=None,
     ):
-        super().__init__(serial_port, serial_number, config_file)
+        super().__init__(serial_port, serial_number)
         self.conn.baudrate = 9600
         """Basic Communication BaudRate"""
         self.resolution = 32768 / 5.08
@@ -22,14 +21,14 @@ class OdlOzOptics(OpticalDelayLine):
 
         self.conn.open()
 
-    def connect(self):
+    def connect(self) -> None:
         if self.conn.is_open == 0:
             try:
                 self.conn.open()
             except Exception as err:
                 raise RuntimeError("Connection failed: " + str(err))
 
-    def move(self, dist: float):
+    def move(self, dist: float) -> None:
         if not self.conn.is_open:
             raise RuntimeError("Moving ODL failed: can not connect to ODL device")
         if dist > 200 or dist < 0:
@@ -37,7 +36,7 @@ class OdlOzOptics(OpticalDelayLine):
         else:
             self.set_step(int(dist * self.resolution))
 
-    def set_step(self, value):
+    def set_step(self, value: int) -> str:
         cmd = "S" + str(value)
         response = self.serial_command(cmd)
         return response
@@ -51,17 +50,17 @@ class OdlOzOptics(OpticalDelayLine):
         step = response.split("Done")[0].split(":")[1]
         return int(step)
 
-    def home(self):
+    def home(self) -> str:
         cmd = "FH"
         response = self.serial_command(cmd, retries=1000)
         return response
 
-    def get_serial(self):
+    def get_serial(self) -> str:
         cmd = "V2"
         response = self.serial_command(cmd)
         return response.split("Done")[0].split("\r\n")[1]
 
-    def get_device_info(self):
+    def get_device_info(self) -> tuple[str, str]:
         cmd = "V1"
         response = self.serial_command(cmd)
         response = response.split("\r\n")[1]
@@ -69,83 +68,83 @@ class OdlOzOptics(OpticalDelayLine):
         hwd_version = response.split("V")[1].split("_")[0]
         return device_name, hwd_version
 
-    def get_mfg_date(self):
+    def get_mfg_date(self) -> str:
         cmd = "d?"
         response = self.serial_command(cmd)
         date = response.split("\r\n")[1]
         return date
 
-    def echo(self, on_off):
+    def echo(self, on_off: int) -> str:
         cmd = "e" + str(on_off)
         response = self.serial_command(cmd)
         return response
 
-    def reset(self):
+    def reset(self) -> str:
         cmd = "RESET"
         response = self.serial_command(cmd)
         return response
 
-    def oz_mode(self, on_off):  # on_off -> 0: OZ mode OFF | 1: OZ mode ON
+    def oz_mode(self, on_off: int) -> str:  # on_off -> 0: OZ mode OFF | 1: OZ mode ON
         cmd = "OZ-SHS" + str(on_off)
         # cmd = '?'
         response = self.serial_command(cmd)
         return response
 
-    def forward(self):
+    def forward(self) -> str:
         cmd = "GF"
         response = self.serial_command(cmd, retries=15)
         return response
 
-    def reverse(self):
+    def reverse(self) -> str:
         cmd = "GR"
         response = self.serial_command(cmd, retries=15)
         return response
 
-    def stop(self):
+    def stop(self) -> str:
         cmd = "G0"
         response = self.serial_command(cmd)
         return response
 
-    def write_to_flash(self):
+    def write_to_flash(self) -> str:
         cmd = "OW"
         response = self.serial_command(cmd)
         return response
 
-    def start_burn_in(self, parameter):
+    def start_burn_in(self, parameter: int) -> str:
         cmd = "OZBI" + str(parameter)
         response = self.serial_command(cmd)
         return response
 
-    def write_name(self, parameter):
+    def write_name(self, parameter: int) -> str:
         cmd = "ODN" + str(parameter)
         response = self.serial_command(cmd)
         return response
 
-    def write_serial(self, parameter):
+    def write_serial(self, parameter: int) -> str:
         cmd = "ODS" + str(parameter)
         response = self.serial_command(cmd)
         return response
 
-    def write_mfg_date(self, parameter):
+    def write_mfg_date(self, parameter: int) -> str:
         cmd = "ODM" + str(parameter)
         response = self.serial_command(cmd)
         return response
 
-    def write_hw_version(self, parameter):
+    def write_hw_version(self, parameter: int) -> str:
         cmd = "OHW" + str(parameter)
         response = self.serial_command(cmd)
         return response
 
-    def serial_close(self):
+    def serial_close(self) -> None:
         self.conn.close()
 
-    def serial_send(self, serial_cmd):
+    def serial_send(self, serial_cmd: str) -> None:
         # Encode and send the command to the serial device.
-        self.conn.flushInput()  # flush input buffer, discarding all its contents
-        self.conn.flushOutput()  # flush output buffer, aborting current output and discard all that is in buffer
+        self.conn.reset_input_buffer()  # flush input buffer, discarding all its contents
+        self.conn.reset_output_buffer()  # flush output buffer, aborting current output and discard all that is in buffer
         self.conn.write(serial_cmd.encode())
 
-    def serial_read(self, retries=10):
+    def serial_read(self, retries: int = 10) -> str:
         # The Python serial "in_waiting" property is the count of bytes available
         # for reading at the serial port.  If the value is greater than zero
         # then we know we have content available.
@@ -160,12 +159,12 @@ class OdlOzOptics(OpticalDelayLine):
             retries -= 1
         return device_output
 
-    def serial_command(self, serial_cmd, retries=5):
+    def serial_command(self, serial_cmd: str, retries: int = 5) -> str:
         self.serial_send(serial_cmd + self.command_terminate)
         device_output = self.serial_read(retries)
         return device_output
 
-    def readKey(self, key, retries=5):
+    def readKey(self, key: str, retries: int = 5) -> str:
         device_output = ""
         got_OK = False
         while self.conn.in_waiting > 0 or (got_OK is False and retries > 0):
@@ -177,10 +176,10 @@ class OdlOzOptics(OpticalDelayLine):
             retries -= 1
         return device_output
 
-    def readall(self, sectimeout=5):
+    def readall(self, sectimeout: int = 5) -> tuple[bool, str]:
         ok = False
         bytes = self.conn.read(1)
-        while self.conn.inWaiting() > 0:
+        while self.conn.in_waiting > 0:
             bytes += self.conn.read(1)
         msg = bytes.decode("UTF-8")
         ok = True
@@ -189,4 +188,4 @@ class OdlOzOptics(OpticalDelayLine):
 
 if __name__ == "__main__":
     dev = OdlOzOptics("/dev/ttyUSB0")
-    print("Module Under Test/")
+    print("Module Under Test")
