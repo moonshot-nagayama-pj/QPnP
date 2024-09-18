@@ -343,7 +343,7 @@ class Waveplate:
     def custom_rotate(self, degree: float | int) -> None:
         """Rotation with customized home!"""
 
-        if not self.relative_home:
+        if self.relative_home is None:
             self.logger.error(
                 "relative_home parameter should be defined befor custom rotation"
             )
