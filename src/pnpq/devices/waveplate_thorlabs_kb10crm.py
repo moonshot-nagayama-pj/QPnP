@@ -54,6 +54,7 @@ class Waveplate:
         self.conn.stopbits = 1
         self.conn.parity = "N"
         self.conn.rtscts = True
+        self.relative_home = 0.0
 
         self.device_sn = serial_number
         if serial_port is not None:
@@ -342,15 +343,6 @@ class Waveplate:
 
     def custom_rotate(self, degree: float | int) -> None:
         """Rotation with customized home!"""
-
-        if self.relative_home is None:
-            self.logger.error(
-                "relative_home parameter should be defined befor custom rotation"
-            )
-            raise WavePlateCustomRotateError(
-                f"Waveplate({self}) relative_home can not be completed"
-            )
-
         self.rotate(degree + self.relative_home)
 
     def __repr__(self) -> str:
