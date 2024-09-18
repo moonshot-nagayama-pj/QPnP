@@ -8,7 +8,6 @@ from pnpq.errors import (
     WavePlateMoveNotCompleted,
     WavePlateHomedNotCompleted,
     WavePlateGetPosNotCompleted,
-    WavePlateCustomRotateError,
     WaveplateInvalidStepsError,
     WaveplateInvalidDegreeError,
     WaveplateEnableChannelError,
