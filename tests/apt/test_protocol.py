@@ -11,6 +11,10 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     ChanIdent,
     EnableState,
@@ -238,6 +242,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
         destination=Address.HOST_CONTROLLER,
         source=Address.BAY_1,
+        chan_ident=ChanIdent.CHANNEL_1,
         position=1,
         velocity=1,
         motor_current=(-1 * ureg.milliamp),
@@ -263,3 +268,86 @@ def test_AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE_to_bytes() -> None:
         source=Address.HOST_CONTROLLER,
     )
     assert msg.to_bytes() == b"\x90\x04\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_ABSOLUTE_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_ABSOLUTE.from_bytes(
+        bytes.fromhex("5304 0600 A2 01 0100 400D0300")
+    )
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0453
+    assert msg.source == 0x01
+    assert msg.chan_ident == 0x01
+    assert msg.absolute_distance == 200000
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_ABSOLUTE_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        chan_ident=ChanIdent.CHANNEL_1,
+        absolute_distance=200000,
+    )
+    assert msg.to_bytes() == bytes.fromhex("5304 0600 A2 01 0100 400D0300")
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_COMPLETED.from_bytes(
+        bytes.fromhex("6404 0e00 81 22 0100 00000001 0001 FFFF 07000000")
+    )
+    assert msg.destination == 0x01
+    assert msg.message_id == 0x0464
+    assert msg.source == 0x22
+    assert msg.position == 16777216
+    assert msg.velocity == 256
+    assert msg.motor_current == -1 * ureg.milliamp
+    assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_COMPLETED(
+        destination=Address.HOST_CONTROLLER,
+        source=Address.BAY_1,
+        chan_ident=ChanIdent.CHANNEL_1,
+        position=1,
+        velocity=1,
+        motor_current=(-1 * ureg.milliamp),
+        status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "6404 0e00 81 22 0100 01000000 0100 FFFF 07000000"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_HOME_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_HOME.from_bytes(b"\x43\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0443
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_HOME_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_HOME(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x43\x04\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_HOMED_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_HOMED.from_bytes(b"\x44\x04\x01\x02\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0444
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_HOMED_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_HOMED(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x44\x04\x01\x00\x50\x01"
