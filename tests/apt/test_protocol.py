@@ -6,13 +6,20 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
     AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
     AptMessage_MGMSG_MOD_GET_CHANENABLESTATE,
+    AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
+    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     ChanIdent,
     EnableState,
     FirmwareVersion,
     HardwareType,
+    Status,
 )
+
+from pnpq.units import ureg
 
 
 def test_AptMessage_MGMSG_HW_DISCONNECT_from_bytes() -> None:
@@ -180,3 +187,79 @@ def test_AptMessage_MGMSG_MOD_SET_CHANENABLESTATE_to_bytes() -> None:
         source=Address.HOST_CONTROLLER,
     )
     assert msg.to_bytes() == b"\x10\x02\x01\x02\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOD_IDENTIFY_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOD_IDENTIFY.from_bytes(b"\x23\x02\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0223
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOD_IDENTIFY_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOD_IDENTIFY(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x23\x02\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE.from_bytes(b"\x92\x04\x00\x00\x50\x01")
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0492
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x92\x04\x00\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE.from_bytes(
+        bytes.fromhex("9104 0e00 81 22 0100 00000001 0001 FFFF 07000000")
+    )
+    assert msg.destination == 0x01
+    assert msg.message_id == 0x0491
+    assert msg.source == 0x22
+    assert msg.position == 16777216
+    assert msg.velocity == 256
+    assert msg.motor_current == -1 * ureg.milliamp
+    assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
+
+
+def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
+        destination=Address.HOST_CONTROLLER,
+        source=Address.BAY_1,
+        position=1,
+        velocity=1,
+        motor_current=(-1 * ureg.milliamp),
+        status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "9104 0e00 81 22 0100 01000000 0100 FFFF 07000000"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE.from_bytes(b"\x90\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0490
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x90\x04\x01\x00\x50\x01"

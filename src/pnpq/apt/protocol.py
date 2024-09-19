@@ -1,7 +1,11 @@
+import dataclasses
 import enum
+
+from ..units import ureg
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import Enum, IntFlag, StrEnum, STRICT
+from pint import Quantity
 from struct import Struct
 from typing import ClassVar, Self
 
@@ -20,8 +24,14 @@ class AptMessageId(int, Enum):
 
     MGMSG_MOD_IDENTIFY = 0x0223
 
-    MGMSG_MOT_GET_DCSTATUSUPDATE = 0x0491
+    MGMSG_MOT_ACK_USTATUSUPDATE = 0x0492
+    MGMSG_MOT_GET_USTATUSUPDATE = 0x0491
+    MGMSG_MOT_REQ_USTATUSUPDATE = 0x0490
+
     MGMSG_MOT_GET_POSCOUNTER = 0x0412
+    MGMSG_MOT_REQ_POSCOUNTER = 0x0411
+    MGMSG_MOT_SET_POSCOUNTER = 0x0410
+
     MGMSG_MOT_MOVE_ABSOLUTE = 0x0453
     MGMSG_MOT_MOVE_COMPLETED = 0x0464
     MGMSG_MOT_MOVE_HOME = 0x0443
@@ -29,13 +39,13 @@ class AptMessageId(int, Enum):
     MGMSG_MOT_MOVE_JOG = 0x046A
     MGMSG_MOT_MOVE_STOP = 0x0465
     MGMSG_MOT_MOVE_STOPPED = 0x0466
-    MGMSG_MOT_REQ_DCSTATUSUPDATE = 0x0490
-    MGMSG_MOT_REQ_POSCOUNTER = 0x0411
+
     MGMSG_MOT_SET_EEPROMPARAMS = 0x04B9
-    MGMSG_MOT_SET_POSCOUNTER = 0x0410
+
     MGMSG_POL_GET_PARAMS = 0x0532
     MGMSG_POL_REQ_PARAMS = 0x0531
     MGMSG_POL_SET_PARAMS = 0x0530
+
     MGMSG_RESTOREFACTORYSETTINGS = 0x0686
 
 
@@ -83,7 +93,7 @@ class FirmwareVersion:
 
 @enum.unique
 class ChanIdent(int, Enum):
-    """Used in CHANENABLESTATE commands."""
+    """Used in IDENTIFY and CHANENABLESTATE commands."""
 
     CHANNEL_1 = 0x01
     CHANNEL_2 = 0x02
@@ -97,6 +107,105 @@ class EnableState(int, Enum):
 
     CHANNEL_ENABLED = 0x01
     CHANNEL_DISABLED = 0x02
+
+
+@enum.unique
+class StatusBits(IntFlag, boundary=STRICT):
+    """Bitmask used in MGMSG_MOT_GET_USTATUSUPDATE to indicate motor
+    conditions. In the official documentation, all of these names have
+    P_MOT_SB prepended to them.
+
+    All spelling errors (e.g. "INITILIZING") are from the official
+    documentation.
+    """
+
+    CWHARDLIMIT = 0x00000001
+    CCWHARDLIMIT = 0x00000002
+    CWSOFTLIMIT = 0x00000004
+    CCWSOFTLIMIT = 0x00000008
+    INMOTIONCW = 0x00000010
+    INMOTIONCCW = 0x00000020
+    JOGGINGCW = 0x00000040
+    JOGGINGCCW = 0x00000080
+    CONNECTED = 0x00000100
+    HOMING = 0x00000200
+    HOMED = 0x00000400
+    INITILIZING = 0x00000800
+    TRACKING = 0x00001000
+    SETTLED = 0x00002000
+    POSITIONERROR = 0x00004000
+    INSTRERROR = 0x00008000
+    INTERLOCK = 0x00010000
+    OVERTEMP = 0x00020000
+    BUSVOLTFAULT = 0x00040000
+    COMMUTATIONERROR = 0x00080000
+    DIGIP1 = 0x00100000
+    DIGIP2 = 0x00200000
+    DIGIP3 = 0x00400000
+    DIGIP4 = 0x00800000
+    OVERLOAD = 0x01000000
+    ENCODERFAULT = 0x02000000
+    OVERCURRENT = 0x04000000
+    BUSCURRENTFAULT = 0x08000000
+    POWEROK = 0x10000000
+    ACTIVE = 0x20000000
+    ERROR = 0x40000000
+    ENABLED = 0x80000000
+
+
+@dataclass(frozen=True, kw_only=True)
+class Status:
+    """Dataclass-based representation of StatusBits to enable more
+    legible output formats such as JSON.
+    """
+
+    CWHARDLIMIT: bool = False
+    CCWHARDLIMIT: bool = False
+    CWSOFTLIMIT: bool = False
+    CCWSOFTLIMIT: bool = False
+    INMOTIONCW: bool = False
+    INMOTIONCCW: bool = False
+    JOGGINGCW: bool = False
+    JOGGINGCCW: bool = False
+    CONNECTED: bool = False
+    HOMING: bool = False
+    HOMED: bool = False
+    INITILIZING: bool = False
+    TRACKING: bool = False
+    SETTLED: bool = False
+    POSITIONERROR: bool = False
+    INSTRERROR: bool = False
+    INTERLOCK: bool = False
+    OVERTEMP: bool = False
+    BUSVOLTFAULT: bool = False
+    COMMUTATIONERROR: bool = False
+    DIGIP1: bool = False
+    DIGIP2: bool = False
+    DIGIP3: bool = False
+    DIGIP4: bool = False
+    OVERLOAD: bool = False
+    ENCODERFAULT: bool = False
+    OVERCURRENT: bool = False
+    BUSCURRENTFAULT: bool = False
+    POWEROK: bool = False
+    ACTIVE: bool = False
+    ERROR: bool = False
+    ENABLED: bool = False
+
+    @classmethod
+    def from_bits(cls, bits: StatusBits) -> Self:
+        kwargs = {}
+        for bit in iter(bits):
+            kwargs[bit.name] = True
+        # See bug https://github.com/python/mypy/issues/13674
+        return cls(**kwargs)  # type: ignore
+
+    def to_bits(self) -> StatusBits:
+        bits = StatusBits(0)
+        for field in dataclasses.fields(self):
+            if getattr(self, field.name):
+                bits = bits | StatusBits[field.name]
+        return bits
 
 
 @enum.unique
@@ -188,6 +297,41 @@ class AptMessageWithData(AptMessage):
     @property
     def destination_serialization(self) -> int:
         return self.destination | 0x80
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessageHeaderOnlyChanIdent(AptMessageHeaderOnly):
+    message_struct: ClassVar[Struct] = Struct(
+        f"<{ATS.WORD}{ATS.U_BYTE}{ATS.CHAR}2{ATS.U_BYTE}"
+    )
+
+    chan_ident: ChanIdent
+    param2: bytes = bytes(1)
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        message_id, chan_ident, param2, destination, source = cls.message_struct.unpack(
+            raw
+        )
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw message was {raw!r}"
+            )
+        return cls(
+            chan_ident=ChanIdent(chan_ident),
+            destination=Address(destination),
+            param2=param2,
+            source=Address(source),
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.chan_ident,
+            self.param2,
+            self.destination_serialization,
+            self.source,
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -340,41 +484,102 @@ class AptMessage_MGMSG_MOD_GET_CHANENABLESTATE(AptMessageHeaderOnlyChanEnableSta
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE(AptMessageHeaderOnly):
-    message_struct: ClassVar[Struct] = Struct(
-        f"<{ATS.WORD}{ATS.U_BYTE}{ATS.CHAR}2{ATS.U_BYTE}"
-    )
-
+class AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE(AptMessageHeaderOnlyChanIdent):
     message_id = AptMessageId.MGMSG_MOD_REQ_CHANENABLESTATE
-    chan_ident: ChanIdent
-    param2: bytes = bytes(1)
-
-    @classmethod
-    def from_bytes(cls, raw: bytes) -> Self:
-        message_id, chan_ident, param2, destination, source = cls.message_struct.unpack(
-            raw
-        )
-        if message_id != cls.message_id:
-            raise ValueError(
-                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw message was {raw!r}"
-            )
-        return cls(
-            chan_ident=ChanIdent(chan_ident),
-            destination=Address(destination),
-            param2=param2,
-            source=Address(source),
-        )
-
-    def to_bytes(self) -> bytes:
-        return self.message_struct.pack(
-            self.message_id,
-            self.chan_ident,
-            self.param2,
-            self.destination_serialization,
-            self.source,
-        )
 
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(AptMessageHeaderOnlyChanEnableState):
     message_id = AptMessageId.MGMSG_MOD_SET_CHANENABLESTATE
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOD_IDENTIFY(AptMessageHeaderOnlyChanIdent):
+    message_id = AptMessageId.MGMSG_MOD_IDENTIFY
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(AptMessageHeaderOnlyNoParams):
+    message_id = AptMessageId.MGMSG_MOT_ACK_USTATUSUPDATE
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(AptMessageWithData):
+    data_length: ClassVar[int] = 14
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_GET_USTATUSUPDATE
+    chan_ident: ClassVar[ChanIdent] = ChanIdent.CHANNEL_1
+
+    # The official documentation for this struct does not follow the
+    # official vocabulary established at the beginning of the manual
+    # to indicate which fields are signed and which are unsigned. The
+    # below is a best guess, assuming that position and velocity can
+    # possibly be negative. Motor current can clearly be negative.
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}{ATS.WORD}{ATS.LONG}{ATS.SHORT}{ATS.SHORT}{ATS.DWORD}"
+    )
+
+    position: int
+    velocity: int
+    motor_current: Quantity
+    status: Status
+
+    def __post_init__(self) -> None:
+        self.motor_current.check("[current]")
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_GET_USTATUSUPDATE":
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident,
+            position,
+            velocity,
+            motor_current,
+            status_flag,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+        if chan_ident != cls.chan_ident:
+            raise ValueError(
+                f"Expected the chan_ident to be {cls.chan_ident}, but it was {chan_ident}. Full raw data was {raw!r}"
+            )
+
+        return AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            position=position,
+            velocity=velocity,
+            motor_current=(motor_current * ureg.milliamp),
+            status=Status.from_bits(StatusBits(status_flag)),
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident,
+            self.position,
+            self.velocity,
+            round(self.motor_current.to(ureg.milliamp).magnitude),
+            self.status.to_bits(),
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(AptMessageHeaderOnlyChanIdent):
+    message_id = AptMessageId.MGMSG_MOT_REQ_USTATUSUPDATE
