@@ -262,26 +262,25 @@ class AptMessage(ABC):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessageForStreamParsing():
+class AptMessageForStreamParsing:
     """This is used to parse streams of incoming messages and
     understand if they are header-only or data-attached messages. Note
     that it does NOT implement the AptMessage abstract base class."""
-    header_struct_str: ClassVar[str] = f"<{ATS.WORD}{ATS.WORD}2{ATS.U_BYTE}"
+
+    header_struct: ClassVar[Struct] = Struct(f"<{ATS.WORD}{ATS.WORD}2{ATS.U_BYTE}")
 
     message_id: int
     data_length: int
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> Self:
-        message_id, data_length, destination, _ = cls.message_struct.unpack(
-            raw
-        )
+        message_id, data_length, destination, _ = cls.header_struct.unpack(raw)
         if destination & 0x80 != 0x80:
             # This is not a message with data following
             data_length = 0
         return cls(
-            message_id=message_id
-            data_length=0,
+            message_id=message_id,
+            data_length=data_length,
         )
 
 

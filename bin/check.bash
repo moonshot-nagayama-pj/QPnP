@@ -53,7 +53,7 @@ mypy
 
 # Run black check
 stdmsg "Checking Python code formatting with black..."
-black --check --diff src tests
+black --check --diff src tests hardware_tests
 
 # Run shellcheck
 # Recursively loop through all files and find all files with .sh extension and run shellcheck

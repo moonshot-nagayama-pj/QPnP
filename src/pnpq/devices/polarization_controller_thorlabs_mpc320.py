@@ -1,10 +1,38 @@
-import serial
+import pnpq.apt
+import serial.tools.list_ports
+import structlog
 import threading
+import time
 
-from apt.protocol import ChanIdent, EnableState, AptMessage_MGMSG_MOD_SET_CHANENABLESTATE
-from dataclasses import dataclass, ClassVar
+from ..apt.protocol import (
+    Address,
+    AptMessage,
+    AptMessageForStreamParsing,
+    AptMessageId,
+    AptMessage_MGMSG_HW_START_UPDATEMSGS,
+    AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
+    AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
+    AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    ChanIdent,
+    EnableState,
+)
+from dataclasses import dataclass, field
+from pathlib import Path
 from serial import Serial
-from serial.tools import list_ports
+
+structlog.configure(
+    processors=[
+        structlog.processors.add_log_level,
+        structlog.processors.StackInfoRenderer(),
+        structlog.dev.set_exc_info,
+        structlog.processors.TimeStamper(fmt="iso", utc=True),
+        structlog.processors.JSONRenderer(),
+    ],
+    logger_factory=structlog.WriteLoggerFactory(
+        file=Path("target/app").with_suffix(".log").open("a")
+    ),
+)
+
 
 @dataclass(frozen=True, kw_only=True)
 class PolarizationControllerThorlabsMPC320:
@@ -15,31 +43,63 @@ class PolarizationControllerThorlabsMPC320:
     parity: str = serial.PARITY_NONE
     rtscts: bool = True
     stopbits: int = serial.STOPBITS_ONE
-    timeout: None|int = None
+    timeout: None | int = (
+        None  # None means wait forever, until the requested number of bytes are received
+    )
 
-    connection: InitVar[Serial] = field(init=False)
-    rx_dispatcher: InitVar[Thread] = field(init=False)
+    connection: Serial = field(init=False)
+    rx_dispatcher: threading.Thread = field(init=False)
+    command_lock: threading.Lock = field(default_factory=threading.Lock)
+    dispatch_lock: threading.Lock = field(default_factory=threading.Lock)
+    log = structlog.get_logger()
+
     serial_number: str
 
-    command_lock: threading.Lock = field(default_factory=threading.Lock)
+    def __post_init__(self) -> None:
+        self.log.debug("Starting post-init...")
 
-    def __post_init__() -> None:
+        port_found = False
         for port in serial.tools.list_ports.comports():
             if port.serial_number == self.serial_number:
-                self.connection = Serial(
-                    baudrate=this.baudrate,
-                    bytesize=this.bytesize,
-                    exclusive=this.exclusive,
-                    parity=this.parity,
-                    port=port.device,
-                    rtscts=this.rtscts,
-                    stopbits=this.stopbits,
-                    timeout=this.timeout,
+                port_found = True
+                break
+        if not port_found:
+            raise ValueError(
+                f"Serial number {self.serial_number} could not be found, failing intialization."
+            )
+
+        object.__setattr__(
+            self,
+            "connection",
+            Serial(
+                baudrate=self.baudrate,
+                bytesize=self.bytesize,
+                exclusive=self.exclusive,
+                parity=self.parity,
+                port=port.device,
+                rtscts=self.rtscts,
+                stopbits=self.stopbits,
+                timeout=self.timeout,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "rx_dispatcher",
+            threading.Thread(target=self.rx_dispatch, daemon=True),
+        )
+
+        # Disable and then re-enable all three channels
+        for enable_state in (EnableState.CHANNEL_DISABLED, EnableState.CHANNEL_ENABLED):
+            for chan in (ChanIdent.CHANNEL_1, ChanIdent.CHANNEL_2, ChanIdent.CHANNEL_3):
+                self.send_message(
+                    AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
+                        chan_ident=chan,
+                        enable_state=enable_state,
+                        destination=Address.GENERIC_USB,
+                        source=Address.HOST_CONTROLLER,
+                    )
                 )
-                self.rx_dispatcher = Thread(target=self.rx_dispatch, daemon=True)
-                self.send_message(AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(chan_ident=ChanIdent.CHANNEL_1, enable_state=EnableState.CHANNEL_DISABLED))
-                return
-        raise ValueError(f"Serial number {self.serial_number} could not be found, failing intialization.")
+        self.log.debug("Finishing post-init...")
 
     # TODO from a multi-threading point of view, it might be much
     # easier to assume that, for the life of a program, a connection
@@ -61,22 +121,60 @@ class PolarizationControllerThorlabsMPC320:
     def send_message(self, message: AptMessage) -> None | AptMessage:
         """Send a message and block until a reply is received (assuming that a reply is expected)"""
 
-        # Not necessarily the case that we need to syncrhonize writes
-        # to the port to avoid interleaved text from other threads
-        # (the underlying os.write() may handle this for us, I'm not
-        # totally sure) but eventually we will need to prevent more
-        # than one command running at the same time, e.g. we will need
-        # to wait until a reply to the command is received.
-        with command_lock:
-            connection.write(message.to_bytes())
+        # It's not necessarily the case that we need to syncrhonize
+        # writes to the port to avoid interleaved text from other
+        # threads (the underlying os.write() may handle this for us,
+        # I'm not totally sure) but eventually we will need to prevent
+        # more than one command running at the same time, e.g. we will
+        # need to wait until a reply to the command is received.
+        with self.command_lock:
+            self.log.debug(sent_message=message)
+            self.connection.write(message.to_bytes())
+        return None
 
     def rx_dispatch(self) -> None:
-        # TODO acquire a lock and keep it, only one of these threads should run at once
-        while True:
-            message_bytes = self.connection.read(6)
-            message_header = AptMessageForStreamParsing.from_bytes(message_bytes)
-            if message_header.data_length == 0:
-                pass
-            else:
-                message_bytes = message_bytes + self.connection.read(message_header.data_length)
-            print()
+        with self.dispatch_lock:
+            while True:
+                message_bytes = self.connection.read(6)
+                message = AptMessageForStreamParsing.from_bytes(message_bytes)
+                if message.message_id in AptMessageId:
+                    message_id = AptMessageId(message.message_id)
+                    if message.data_length != 0:
+                        message_bytes = message_bytes + self.connection.read(
+                            message.data_length
+                        )
+                    message = getattr(
+                        pnpq.apt.protocol, f"AptMessage_{message_id.name}"
+                    ).from_bytes(message_bytes)
+                self.log.debug(received_message=message)
+
+    def move_absolute(self, chan_ident: ChanIdent, absolute_degree: float) -> None:
+        if absolute_degree < 0 or absolute_degree > 170:
+            raise ValueError(
+                f"Absolute degree must be between 0 and 170. Value given was {absolute_degree}"
+            )
+        absolute_distance = round(absolute_degree * (1370 / 170))
+        self.send_message(
+            AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(
+                chan_ident=chan_ident,
+                absolute_distance=absolute_distance,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+
+    def check_status(self) -> None:
+        self.send_message(
+            AptMessage_MGMSG_HW_START_UPDATEMSGS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+        time.sleep(5)
+        self.send_message(
+            AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+        time.sleep(1)

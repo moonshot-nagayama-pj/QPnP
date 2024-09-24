@@ -20,6 +20,8 @@ pint==0.24.3
     # via pnpq
 pyserial==3.5
     # via pnpq
+structlog==24.4.0
+    # via pnpq
 types-pyserial==3.5.0.20240826
     # via pnpq
 typing-extensions==4.12.2
