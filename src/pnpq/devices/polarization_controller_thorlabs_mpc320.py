@@ -21,21 +21,7 @@ from ..apt.protocol import (
     EnableState,
 )
 from dataclasses import dataclass, field
-from pathlib import Path
 from serial import Serial
-
-structlog.configure(
-    processors=[
-        structlog.processors.add_log_level,
-        structlog.processors.StackInfoRenderer(),
-        structlog.dev.set_exc_info,
-        structlog.processors.TimeStamper(fmt="iso", utc=True),
-        structlog.processors.JSONRenderer(),
-    ],
-    logger_factory=structlog.WriteLoggerFactory(
-        file=Path("target/app").with_suffix(".log").open("a")
-    ),
-)
 
 
 @dataclass(frozen=True, kw_only=True)
