@@ -32,6 +32,7 @@ class AptMessageId(int, Enum):
     MGMSG_MOT_MOVE_COMPLETED = 0x0464
     MGMSG_MOT_MOVE_HOME = 0x0443
     MGMSG_MOT_MOVE_HOMED = 0x0444
+    MGMSG_MOT_RESUME_ENDOFMOVEMSGS = 0x046C
 
 
 @enum.unique
@@ -100,7 +101,7 @@ class FirmwareVersion:
 
 
 @enum.unique
-class ChanIdent(int, Enum):
+class ChanIdent(IntFlag, boundary=STRICT):
     """Used in IDENTIFY and CHANENABLESTATE commands."""
 
     CHANNEL_1 = 0x01
@@ -683,3 +684,8 @@ class AptMessage_MGMSG_MOT_MOVE_HOME(AptMessageHeaderOnlyChanIdent):
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_HOMED(AptMessageHeaderOnlyChanIdent):
     message_id = AptMessageId.MGMSG_MOT_MOVE_HOMED
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_RESUME_ENDOFMOVEMSGS(AptMessageHeaderOnlyNoParams):
+    message_id = AptMessageId.MGMSG_MOT_RESUME_ENDOFMOVEMSGS

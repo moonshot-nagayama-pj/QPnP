@@ -12,7 +12,11 @@ from ..apt.protocol import (
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
     AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
+    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    AptMessage_MGMSG_MOT_MOVE_HOME,
+    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_RESUME_ENDOFMOVEMSGS,
     ChanIdent,
     EnableState,
 )
@@ -48,7 +52,9 @@ class PolarizationControllerThorlabsMPC320:
     )
 
     connection: Serial = field(init=False)
+    ack_sender: threading.Thread = field(init=False)
     rx_dispatcher: threading.Thread = field(init=False)
+    ack_lock: threading.Lock = field(default_factory=threading.Lock)
     command_lock: threading.Lock = field(default_factory=threading.Lock)
     dispatch_lock: threading.Lock = field(default_factory=threading.Lock)
     log = structlog.get_logger()
@@ -84,21 +90,37 @@ class PolarizationControllerThorlabsMPC320:
         )
         object.__setattr__(
             self,
+            "ack_sender",
+            threading.Thread(target=self.tx_ack, daemon=True),
+        )
+        self.ack_sender.start()
+
+        object.__setattr__(
+            self,
             "rx_dispatcher",
             threading.Thread(target=self.rx_dispatch, daemon=True),
         )
+        self.rx_dispatcher.start()
 
         # Disable and then re-enable all three channels
         for enable_state in (EnableState.CHANNEL_DISABLED, EnableState.CHANNEL_ENABLED):
-            for chan in (ChanIdent.CHANNEL_1, ChanIdent.CHANNEL_2, ChanIdent.CHANNEL_3):
-                self.send_message(
-                    AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
-                        chan_ident=chan,
-                        enable_state=enable_state,
-                        destination=Address.GENERIC_USB,
-                        source=Address.HOST_CONTROLLER,
-                    )
+            self.send_message(
+                AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
+                    chan_ident=(
+                        ChanIdent.CHANNEL_1 | ChanIdent.CHANNEL_2 | ChanIdent.CHANNEL_3
+                    ),
+                    enable_state=enable_state,
+                    destination=Address.GENERIC_USB,
+                    source=Address.HOST_CONTROLLER,
                 )
+            )
+        self.send_message(
+            AptMessage_MGMSG_MOT_RESUME_ENDOFMOVEMSGS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+
         self.log.debug("Finishing post-init...")
 
     # TODO from a multi-threading point of view, it might be much
@@ -128,14 +150,17 @@ class PolarizationControllerThorlabsMPC320:
         # more than one command running at the same time, e.g. we will
         # need to wait until a reply to the command is received.
         with self.command_lock:
-            self.log.debug(sent_message=message)
+            self.log.debug("Sending message", sent_message=message)
             self.connection.write(message.to_bytes())
+            self.connection.flush()
         return None
 
     def rx_dispatch(self) -> None:
         with self.dispatch_lock:
             while True:
+                self.log.debug("Ready to receive message...")
                 message_bytes = self.connection.read(6)
+                self.connection.flush()
                 message = AptMessageForStreamParsing.from_bytes(message_bytes)
                 if message.message_id in AptMessageId:
                     message_id = AptMessageId(message.message_id)
@@ -146,7 +171,49 @@ class PolarizationControllerThorlabsMPC320:
                     message = getattr(
                         pnpq.apt.protocol, f"AptMessage_{message_id.name}"
                     ).from_bytes(message_bytes)
-                self.log.debug(received_message=message)
+                self.log.debug("Received message", received_message=message)
+
+    def tx_ack(self) -> None:
+        with self.ack_lock:
+            while True:
+                self.send_message(
+                    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
+                        chan_ident=ChanIdent.CHANNEL_1,
+                        destination=Address.GENERIC_USB,
+                        source=Address.HOST_CONTROLLER,
+                    )
+                )
+                self.send_message(
+                    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
+                        chan_ident=ChanIdent.CHANNEL_2,
+                        destination=Address.GENERIC_USB,
+                        source=Address.HOST_CONTROLLER,
+                    )
+                )
+                self.send_message(
+                    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
+                        chan_ident=ChanIdent.CHANNEL_3,
+                        destination=Address.GENERIC_USB,
+                        source=Address.HOST_CONTROLLER,
+                    )
+                )
+                self.send_message(
+                    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
+                        destination=Address.GENERIC_USB,
+                        source=Address.HOST_CONTROLLER,
+                    )
+                )
+                time.sleep(0.1)
+
+    def home(self, chan_ident: ChanIdent) -> None:
+        self.send_message(
+            AptMessage_MGMSG_MOT_MOVE_HOME(
+                chan_ident=chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+        time.sleep(1)
 
     def move_absolute(self, chan_ident: ChanIdent, absolute_degree: float) -> None:
         if absolute_degree < 0 or absolute_degree > 170:
@@ -162,19 +229,20 @@ class PolarizationControllerThorlabsMPC320:
                 source=Address.HOST_CONTROLLER,
             )
         )
+        time.sleep(1)
 
-    def check_status(self) -> None:
+    def start_status_updates(self) -> None:
         self.send_message(
             AptMessage_MGMSG_HW_START_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
             )
         )
-        time.sleep(5)
+
+    def stop_status_updates(self) -> None:
         self.send_message(
             AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
             )
         )
-        time.sleep(1)
