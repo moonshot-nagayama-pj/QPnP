@@ -19,3 +19,27 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     device.home(ChanIdent.CHANNEL_1)
     device.home(ChanIdent.CHANNEL_2)
     device.home(ChanIdent.CHANNEL_3)
+
+    device.move_absolute(ChanIdent.CHANNEL_1, 45)
+    device.move_absolute(ChanIdent.CHANNEL_2, 45)
+    device.move_absolute(ChanIdent.CHANNEL_3, 45)
+
+    device.move_absolute(ChanIdent.CHANNEL_2, 30)
+    device.move_absolute(ChanIdent.CHANNEL_1, 90)
+    device.move_absolute(ChanIdent.CHANNEL_3, 90)
+
+    device.move_absolute(ChanIdent.CHANNEL_3, 170)
+    device.move_absolute(ChanIdent.CHANNEL_2, 90)
+    device.move_absolute(ChanIdent.CHANNEL_1, 0)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+    # One of the channels on our test device appears to forget to turn
+    # off its motor when it's homed or set to 0 degrees. It just sits
+    # there vibrating and whining. It's not really safe to leave the
+    # device at degree 0 for this reason.
+    device.move_absolute(ChanIdent.CHANNEL_1, 1)
+    device.move_absolute(ChanIdent.CHANNEL_2, 1)
+    device.move_absolute(ChanIdent.CHANNEL_3, 1)
