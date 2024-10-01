@@ -1,6 +1,10 @@
 import structlog
+import sys
 
 from pathlib import Path
+from pnpq.events import Event
+from types import TracebackType
+from typing import Any
 
 
 def find_project_dir(path: Path) -> Path:
@@ -26,3 +30,17 @@ structlog.configure(
         file=target_dir.joinpath("tests.log").open("a")
     ),
 )
+
+log = structlog.get_logger()
+
+
+def excepthook(
+    exception_type: type[BaseException],
+    e: BaseException,
+    traceback: TracebackType | None,
+) -> Any:
+    log.error(event=Event.UNCAUGHT_EXCEPTION, exc_info=e)
+    sys.__excepthook__(exception_type, e, traceback)
+
+
+sys.excepthook = excepthook

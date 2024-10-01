@@ -9,3 +9,4 @@ class Event(StrEnum):
     RX_MESSAGE_UNKNOWN = auto()
     TX_MESSAGE_ORDERED = auto()
     TX_MESSAGE_UNORDERED = auto()
+    UNCAUGHT_EXCEPTION = auto()
