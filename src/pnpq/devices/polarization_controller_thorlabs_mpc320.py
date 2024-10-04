@@ -13,7 +13,6 @@ from ..apt.protocol import (
     AptMessageId,
     AptMessage_MGMSG_HW_REQ_INFO,
     AptMessage_MGMSG_MOD_IDENTIFY,
-    AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
