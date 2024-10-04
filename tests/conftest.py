@@ -1,5 +1,6 @@
 import structlog
 import sys
+import threading
 
 from pathlib import Path
 from pnpq.events import Event
@@ -23,6 +24,7 @@ structlog.configure(
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
         structlog.dev.set_exc_info,
+        structlog.processors.dict_tracebacks,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.JSONRenderer(),
     ],
@@ -40,7 +42,18 @@ def excepthook(
     traceback: TracebackType | None,
 ) -> Any:
     log.error(event=Event.UNCAUGHT_EXCEPTION, exc_info=e)
-    sys.__excepthook__(exception_type, e, traceback)
+    return sys.__excepthook__(exception_type, e, traceback)
 
 
 sys.excepthook = excepthook
+
+
+original_threading_excepthook = threading.excepthook
+
+
+def threading_excepthook(args: Any) -> Any:
+    log.error(event=Event.UNCAUGHT_EXCEPTION, exc_info=args.exc_value)
+    return original_threading_excepthook(args)
+
+
+threading.excepthook = threading_excepthook
