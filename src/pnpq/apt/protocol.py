@@ -34,6 +34,10 @@ class AptMessageId(int, Enum):
     MGMSG_MOT_MOVE_HOMED = 0x0444
     MGMSG_MOT_RESUME_ENDOFMOVEMSGS = 0x046C
 
+    MGMSG_POL_GET_PARAMS = 0x0532
+    MGMSG_POL_REQ_PARAMS = 0x0531
+    MGMSG_POL_SET_PARAMS = 0x0530
+
 
 @enum.unique
 class UnimplementedAptMessageId(int, Enum):
@@ -41,6 +45,7 @@ class UnimplementedAptMessageId(int, Enum):
     our devices but have not yet implemented.
     """
 
+    # TODO (see docstring)
     MGMSG_MOT_GET_POSCOUNTER = 0x0412
     MGMSG_MOT_REQ_POSCOUNTER = 0x0411
     MGMSG_MOT_SET_POSCOUNTER = 0x0410
@@ -50,10 +55,6 @@ class UnimplementedAptMessageId(int, Enum):
     MGMSG_MOT_MOVE_STOPPED = 0x0466
 
     MGMSG_MOT_SET_EEPROMPARAMS = 0x04B9
-
-    MGMSG_POL_GET_PARAMS = 0x0532
-    MGMSG_POL_REQ_PARAMS = 0x0531
-    MGMSG_POL_SET_PARAMS = 0x0530
 
     MGMSG_RESTOREFACTORYSETTINGS = 0x0686
 
@@ -76,7 +77,7 @@ class Address(int, Enum):
 
 
 @enum.unique
-class HardwareType(int, Enum):
+class HardwareType(IntFlag):
     """Used in MGMSG_HW_GET_INFO"""
 
     BRUSHLESS_DC_CONTROLLER = 44
@@ -116,6 +117,16 @@ class EnableState(int, Enum):
 
     CHANNEL_ENABLED = 0x01
     CHANNEL_DISABLED = 0x02
+
+    def __bool__(self) -> bool:
+        return self.value == 0x01
+
+    @classmethod
+    def from_bool(cls, toggle: bool) -> "EnableState":
+        if toggle:
+            return cls.CHANNEL_ENABLED
+        else:
+            return cls.CHANNEL_DISABLED
 
 
 @enum.unique
@@ -472,6 +483,75 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
         )
 
 
+@dataclass(frozen=True, kw_only=True)
+class AptMessageWithDataPolParams(AptMessageWithData):
+    data_length: ClassVar[int] = 12
+
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}6{ATS.WORD}"
+    )
+
+    unused: int = 0
+    velocity: int
+    home_position: int
+    jog_step_1: int
+    jog_step_2: int
+    jog_step_3: int
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            unused,
+            velocity,
+            home_position,
+            jog_step_1,
+            jog_step_2,
+            jog_step_3,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return cls(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            unused=unused,
+            velocity=velocity,
+            home_position=home_position,
+            jog_step_1=jog_step_1,
+            jog_step_2=jog_step_2,
+            jog_step_3=jog_step_3,
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.unused,
+            self.velocity,
+            self.home_position,
+            self.jog_step_1,
+            self.jog_step_2,
+            self.jog_step_3,
+        )
+
+
 # Concrete message implementation classes
 
 
@@ -672,7 +752,11 @@ class AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(AptMessageWithData):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessageWithDataMotorStatus):
+class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessageHeaderOnlyChanIdent):
+    """Note that the APT documentation indicates that this should be
+    followed by a full USTATUS data packet. In reality, for the
+    MPC320, no data packet follows."""
+
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
 
 
@@ -689,3 +773,18 @@ class AptMessage_MGMSG_MOT_MOVE_HOMED(AptMessageHeaderOnlyChanIdent):
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_RESUME_ENDOFMOVEMSGS(AptMessageHeaderOnlyNoParams):
     message_id = AptMessageId.MGMSG_MOT_RESUME_ENDOFMOVEMSGS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_POL_GET_PARAMS(AptMessageWithDataPolParams):
+    message_id = AptMessageId.MGMSG_POL_GET_PARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_POL_REQ_PARAMS(AptMessageHeaderOnlyNoParams):
+    message_id = AptMessageId.MGMSG_POL_REQ_PARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_POL_SET_PARAMS(AptMessageWithDataPolParams):
+    message_id = AptMessageId.MGMSG_POL_SET_PARAMS

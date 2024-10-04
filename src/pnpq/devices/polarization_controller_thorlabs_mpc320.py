@@ -1,5 +1,4 @@
-import functools
-import operator
+import dataclasses
 import pnpq.apt
 import serial.tools.list_ports
 import structlog
@@ -12,12 +11,19 @@ from ..apt.protocol import (
     AptMessage,
     AptMessageForStreamParsing,
     AptMessageId,
+    AptMessage_MGMSG_HW_REQ_INFO,
+    AptMessage_MGMSG_MOD_IDENTIFY,
+    AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_HOME,
-    AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_POL_GET_PARAMS,
+    AptMessage_MGMSG_POL_REQ_PARAMS,
+    AptMessage_MGMSG_POL_SET_PARAMS,
     ChanIdent,
     EnableState,
 )
@@ -26,7 +32,16 @@ from dataclasses import dataclass, field
 from ..events import Event
 from queue import SimpleQueue
 from serial import Serial
-from typing import Callable, Iterator, Tuple
+from typing import Callable, Iterator, Optional, Tuple
+
+
+@dataclass(kw_only=True)
+class PolarizationControllerParams:
+    velocity: int = 0
+    home_position: int = 0
+    jog_step_1: int = 0
+    jog_step_2: int = 0
+    jog_step_3: int = 0
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -63,6 +78,9 @@ class PolarizationControllerThorlabsMPC320:
 
     tx_connection_lock: threading.Lock = field(default_factory=threading.Lock)
 
+    tx_ordered_sender_awaiting_reply: threading.Event = field(
+        default_factory=threading.Event
+    )
     tx_ordered_sender_queue: SimpleQueue[
         Tuple[
             AptMessage,
@@ -86,10 +104,26 @@ class PolarizationControllerThorlabsMPC320:
 
     log = structlog.get_logger()
 
+    # The actual properties of the device start here.
+
     serial_number: str
+
+    # Retrieved with MGMSG_POL_REQ_PARAMS
+
+    # Stored in a non-frozen dataclass so that we can refresh them as
+    # the configuration changes
+    params: PolarizationControllerParams = field(
+        default_factory=PolarizationControllerParams
+    )
 
     def __post_init__(self) -> None:
         self.log.debug("Starting post-init...")
+
+        # These devices tend to take a few seconds to start up, and
+        # this library tends to be used as part of services that start
+        # automatically on computer boot. For safety, wait here before
+        # continuing initialization.
+        time.sleep(1)
 
         port_found = False
         for port in serial.tools.list_ports.comports():
@@ -101,6 +135,9 @@ class PolarizationControllerThorlabsMPC320:
                 f"Serial number {self.serial_number} could not be found, failing intialization."
             )
 
+        # Initializing the connection by passing a port to the Serial
+        # constructor immediately opens the connection. It is not
+        # necessary to call open() separately.
         object.__setattr__(
             self,
             "connection",
@@ -115,6 +152,16 @@ class PolarizationControllerThorlabsMPC320:
                 timeout=self.timeout,
             ),
         )
+
+        # Remove anything that might be left over in the buffer from
+        # previous runs
+        self.connection.reset_input_buffer()
+        self.connection.reset_output_buffer()
+
+        # Start background threads.
+        #
+        # TODO use some sort of thread manager to safely deal with
+        # uncaught exceptions and other errors.
         object.__setattr__(
             self,
             "tx_poller_thread",
@@ -136,17 +183,15 @@ class PolarizationControllerThorlabsMPC320:
         )
         self.tx_ordered_sender_thread.start()
 
-        # Disable and then re-enable all three channels to ensure that
-        # they are all enabled
-        for enable_state in (EnableState.CHANNEL_DISABLED, EnableState.CHANNEL_ENABLED):
-            self.send_message_no_reply(
-                AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
-                    chan_ident=functools.reduce(operator.or_, self.active_channels),
-                    enable_state=enable_state,
-                    destination=Address.GENERIC_USB,
-                    source=Address.HOST_CONTROLLER,
-                )
+        self.send_message_no_reply(
+            AptMessage_MGMSG_HW_REQ_INFO(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
             )
+        )
+
+        self.refresh_params()
+
         self.log.debug("Finishing post-init...")
 
     # TODO from a multi-threading point of view, it might be much
@@ -175,30 +220,44 @@ class PolarizationControllerThorlabsMPC320:
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
             while True:
-                message_bytes = self.connection.read(6)
-                partial_message = AptMessageForStreamParsing.from_bytes(message_bytes)
-                if partial_message.data_length != 0:
-                    message_bytes = message_bytes + self.connection.read(
-                        partial_message.data_length
+                partial_message: None | AptMessageForStreamParsing = None
+                full_message: Optional[AptMessage] = None
+                try:
+                    message_bytes = self.connection.read(6)
+                    partial_message = AptMessageForStreamParsing.from_bytes(
+                        message_bytes
                     )
-                if partial_message.message_id in AptMessageId:
-                    message_id = AptMessageId(partial_message.message_id)
-                    full_message: AptMessage = getattr(
-                        pnpq.apt.protocol, f"AptMessage_{message_id.name}"
-                    ).from_bytes(message_bytes)
-                    self.log.debug(
-                        event=Event.RX_MESSAGE_KNOWN,
-                        message=full_message,
-                    )
-                    with self.rx_dispatcher_subscribers_lock:
-                        for queue in self.rx_dispatcher_subscribers.values():
-                            queue.put(full_message)
-                else:
-                    # Log and discard unknown messages
-                    self.log.debug(
-                        event=Event.RX_MESSAGE_UNKNOWN,
-                        message=partial_message,
-                        bytes=message_bytes,
+                    message_id = partial_message.message_id
+                    if partial_message.data_length != 0:
+                        message_bytes = message_bytes + self.connection.read(
+                            partial_message.data_length
+                        )
+                    if partial_message.message_id in AptMessageId:
+                        message_id = AptMessageId(partial_message.message_id)
+                        full_message = getattr(
+                            pnpq.apt.protocol, f"AptMessage_{message_id.name}"
+                        ).from_bytes(message_bytes)
+                        assert isinstance(full_message, AptMessage)
+                        self.log.debug(
+                            event=Event.RX_MESSAGE_KNOWN,
+                            message=full_message,
+                        )
+                        with self.rx_dispatcher_subscribers_lock:
+                            for queue in self.rx_dispatcher_subscribers.values():
+                                queue.put(full_message)
+                    else:
+                        # Log and discard unknown messages
+                        self.log.debug(
+                            event=Event.RX_MESSAGE_UNKNOWN,
+                            message=partial_message,
+                            bytes=message_bytes,
+                        )
+                except Exception as e:
+                    self.log.error(
+                        event=Event.UNCAUGHT_EXCEPTION,
+                        exc_info=e,
+                        partial_message=partial_message,
+                        full_message=full_message,
                     )
 
     def tx_poll(self) -> None:
@@ -218,7 +277,25 @@ class PolarizationControllerThorlabsMPC320:
                         source=Address.HOST_CONTROLLER,
                     )
                 )
-                time.sleep(0.2)
+                # If we are currently waiting for a reply to a message
+                # we sent, poll every 0.2 seconds to ensure quick
+                # response to state changes. If we are not waiting for
+                # a reply, poll at least once every second to reduce
+                # the amount of noise in logs.
+                #
+                # The tx_ordered_sender thread can request a faster
+                # update by setting the
+                # tx_ordered_sender_awaiting_reply event.
+                if self.tx_ordered_sender_awaiting_reply.is_set():
+                    time.sleep(0.2)
+                else:
+                    # The documentation for
+                    # MGMSG_MOT_ACK_USTATUSUPDATE suggests that it
+                    # should be sent at least once a second. This will
+                    # probably send slightly _less_ than once a
+                    # second, so, if we start having issues, we should
+                    # decrease this interval.
+                    self.tx_ordered_sender_awaiting_reply.wait(1)
 
     @contextmanager
     def rx_subscribe(self) -> Iterator[SimpleQueue[AptMessage]]:
@@ -233,22 +310,32 @@ class PolarizationControllerThorlabsMPC320:
                 self.rx_dispatcher_subscribers.pop(thread_id)
 
     def tx_ordered_send(self) -> None:
-        with self.tx_ordered_sender_thread_lock, self.rx_subscribe() as receive_queue:
+        # TODO wrap in exception handler
+        with self.tx_ordered_sender_thread_lock:
             while True:
                 message, match_reply, reply_queue = self.tx_ordered_sender_queue.get()
-                with self.tx_connection_lock:
-                    self.log.debug(
-                        event=Event.TX_MESSAGE_ORDERED,
-                        message=message,
-                    )
-                    self.connection.write(message.to_bytes())
+                self.log.debug(
+                    event=Event.TX_MESSAGE_ORDERED,
+                    message=message,
+                )
                 if match_reply is None:
+                    with self.tx_connection_lock:
+                        self.connection.write(message.to_bytes())
                     continue
                 assert reply_queue is not None
-                with timeout(10) as check_timeout:
+                # TODO We are subscribing to incoming messages just
+                # *before* sending our message. Ideally we should
+                # subscribe immediately *after* sending the
+                # message. This is a little tricky to coordinate in
+                # the current architecture.
+                with timeout(10) as check_timeout, self.rx_subscribe() as receive_queue:
+                    with self.tx_connection_lock:
+                        self.connection.write(message.to_bytes())
+                    self.tx_ordered_sender_awaiting_reply.set()
                     while check_timeout():
                         message = receive_queue.get(timeout=10)
                         if match_reply(message):
+                            self.tx_ordered_sender_awaiting_reply.clear()
                             reply_queue.put(message)
                             break
 
@@ -296,6 +383,8 @@ class PolarizationControllerThorlabsMPC320:
         return reply_queue.get()
 
     def home(self, chan_ident: ChanIdent) -> None:
+        self.set_channel_enabled(chan_ident, True)
+        start_time = time.perf_counter()
         self.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_HOME(
                 chan_ident=chan_ident,
@@ -303,13 +392,23 @@ class PolarizationControllerThorlabsMPC320:
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_GET_USTATUSUPDATE)
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_HOMED)
                 and message.chan_ident == chan_ident
-                and message.position == 0
-                and message.status.HOMED
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
             ),
+        )
+        elapsed_time = time.perf_counter() - start_time
+        self.log.debug("home command finished", elapsed_time=elapsed_time)
+        self.set_channel_enabled(chan_ident, False)
+
+    def identify(self, chan_ident: ChanIdent) -> None:
+        self.send_message_no_reply(
+            AptMessage_MGMSG_MOD_IDENTIFY(
+                chan_ident=chan_ident,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
         )
 
     def move_absolute(self, chan_ident: ChanIdent, absolute_degree: float) -> None:
@@ -318,6 +417,9 @@ class PolarizationControllerThorlabsMPC320:
                 f"Absolute degree must be between 0 and 170. Value given was {absolute_degree}"
             )
         absolute_distance = round(absolute_degree * (1370 / 170))
+        self.set_channel_enabled(chan_ident, True)
+        self.log.debug("Sending move_absolute command...")
+        start_time = time.perf_counter()
         self.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(
                 chan_ident=chan_ident,
@@ -333,3 +435,76 @@ class PolarizationControllerThorlabsMPC320:
                 and message.source == Address.GENERIC_USB
             ),
         )
+        elapsed_time = time.perf_counter() - start_time
+        self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
+        self.set_channel_enabled(chan_ident, False)
+
+    def refresh_params(self) -> None:
+        params = self.send_message_expect_reply(
+            AptMessage_MGMSG_POL_REQ_PARAMS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (isinstance(message, AptMessage_MGMSG_POL_GET_PARAMS)),
+        )
+        assert type(params) is AptMessage_MGMSG_POL_GET_PARAMS
+        self.params.velocity = params.velocity
+        self.params.home_position = params.home_position
+        self.params.jog_step_1 = params.jog_step_1
+        self.params.jog_step_2 = params.jog_step_2
+        self.params.jog_step_3 = params.jog_step_3
+
+    def set_channel_enabled(self, chan_ident: ChanIdent, enabled: bool) -> None:
+        if enabled:
+            chan_bitmask = chan_ident
+        else:
+            chan_bitmask = ChanIdent(0)
+        self.send_message_expect_reply(
+            AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
+                chan_ident=chan_bitmask,
+                enable_state=EnableState.CHANNEL_ENABLED,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_GET_USTATUSUPDATE)
+                and message.chan_ident == chan_ident
+                and message.status.ENABLED == enabled
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+
+    def set_params(
+        self,
+        velocity: None | int = None,
+        home_position: None | int = None,
+        jog_step_1: None | int = None,
+        jog_step_2: None | int = None,
+        jog_step_3: None | int = None,
+    ) -> None:
+        replaced_params: dict[str, int] = {}
+        if velocity is not None:
+            replaced_params["velocity"] = velocity
+        if home_position is not None:
+            replaced_params["home_position"] = home_position
+        if jog_step_1 is not None:
+            replaced_params["jog_step_1"] = jog_step_1
+        if jog_step_2 is not None:
+            replaced_params["jog_step_2"] = jog_step_2
+        if jog_step_3 is not None:
+            replaced_params["jog_step_3"] = jog_step_3
+        new_params = dataclasses.replace(self.params, **replaced_params)
+        self.send_message_no_reply(
+            AptMessage_MGMSG_POL_SET_PARAMS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+                velocity=new_params.velocity,
+                home_position=new_params.home_position,
+                jog_step_1=new_params.jog_step_1,
+                jog_step_2=new_params.jog_step_2,
+                jog_step_3=new_params.jog_step_3,
+            )
+        )
+        time.sleep(1)
+        self.refresh_params()

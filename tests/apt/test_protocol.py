@@ -16,6 +16,9 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_POL_GET_PARAMS,
+    AptMessage_MGMSG_POL_REQ_PARAMS,
+    AptMessage_MGMSG_POL_SET_PARAMS,
     ChanIdent,
     EnableState,
     FirmwareVersion,
@@ -293,15 +296,12 @@ def test_AptMessage_MGMSG_MOT_MOVE_ABSOLUTE_to_bytes() -> None:
 
 def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_MOVE_COMPLETED.from_bytes(
-        bytes.fromhex("6404 0e00 81 22 0100 00000001 0001 FFFF 07000000")
+        bytes.fromhex("6404 0100 01 22")
     )
     assert msg.destination == 0x01
     assert msg.message_id == 0x0464
     assert msg.source == 0x22
-    assert msg.position == 16777216
-    assert msg.velocity == 256
-    assert msg.motor_current == -1 * ureg.milliamp
-    assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
+    assert msg.chan_ident == 0x01
 
 
 def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_to_bytes() -> None:
@@ -309,14 +309,8 @@ def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_to_bytes() -> None:
         destination=Address.HOST_CONTROLLER,
         source=Address.BAY_1,
         chan_ident=ChanIdent.CHANNEL_1,
-        position=1,
-        velocity=1,
-        motor_current=(-1 * ureg.milliamp),
-        status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
     )
-    assert msg.to_bytes() == bytes.fromhex(
-        "6404 0e00 81 22 0100 01000000 0100 FFFF 07000000"
-    )
+    assert msg.to_bytes() == bytes.fromhex("6404 0100 01 22")
 
 
 def test_AptMessage_MGMSG_MOT_MOVE_HOME_from_bytes() -> None:
@@ -351,3 +345,78 @@ def test_AptMessage_MGMSG_MOT_MOVE_HOMED_to_bytes() -> None:
         source=Address.HOST_CONTROLLER,
     )
     assert msg.to_bytes() == b"\x44\x04\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_POL_GET_PARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_POL_GET_PARAMS(
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+        velocity=50,
+        home_position=0,
+        jog_step_1=25,
+        jog_step_2=25,
+        jog_step_3=25,
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "3205 0C00 D0 01 0000 3200 0000 1900 1900 1900"
+    )
+
+
+def test_AptMessage_MGMSG_POL_GET_PARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_POL_GET_PARAMS.from_bytes(
+        bytes.fromhex("3205 0C00 D0 01 0000 3200 0000 1900 1900 1900")
+    )
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0532
+    assert msg.source == 0x01
+    assert msg.unused == 0
+    assert msg.velocity == 50
+    assert msg.home_position == 0
+    assert msg.jog_step_1 == 25
+    assert msg.jog_step_2 == 25
+    assert msg.jog_step_3 == 25
+
+
+def test_AptMessage_AptMessage_MGMSG_POL_REQ_PARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_POL_REQ_PARAMS.from_bytes(b"\x31\x05\x00\x00\x50\x01")
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0531
+    assert msg.source == 0x01
+
+
+def test_AptMessage_AptMessage_MGMSG_POL_REQ_PARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_POL_REQ_PARAMS(
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x31\x05\x00\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_POL_SET_PARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_POL_SET_PARAMS(
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+        velocity=50,
+        home_position=0,
+        jog_step_1=25,
+        jog_step_2=25,
+        jog_step_3=25,
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "3005 0C00 D0 01 0000 3200 0000 1900 1900 1900"
+    )
+
+
+def test_AptMessage_MGMSG_POL_SET_PARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_POL_SET_PARAMS.from_bytes(
+        bytes.fromhex("3005 0C00 D0 01 0000 3200 0000 1900 1900 1900")
+    )
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0530
+    assert msg.source == 0x01
+    assert msg.unused == 0
+    assert msg.velocity == 50
+    assert msg.home_position == 0
+    assert msg.jog_step_1 == 25
+    assert msg.jog_step_2 == 25
+    assert msg.jog_step_3 == 25
