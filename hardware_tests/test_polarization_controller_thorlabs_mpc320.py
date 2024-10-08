@@ -6,8 +6,8 @@ from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
 )
 
 
-@pytest.fixture(scope="module")
-def device() -> PolarizationControllerThorlabsMPC320:
+@pytest.fixture(name="device", scope="module")
+def device_fixture() -> PolarizationControllerThorlabsMPC320:
     return PolarizationControllerThorlabsMPC320(serial_number="38454784")
     # return PolarizationControllerThorlabsMPC320(serial_number="38444954")
 

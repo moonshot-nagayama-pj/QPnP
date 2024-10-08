@@ -1,4 +1,4 @@
-import pnpq.devices.utils as utils
+from pnpq.devices import utils
 
 
 def test_get_available_port_no_available_ports() -> None:

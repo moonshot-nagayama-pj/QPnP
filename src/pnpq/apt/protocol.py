@@ -1,3 +1,5 @@
+# pylint: disable=C0103
+
 import dataclasses
 import enum
 from abc import ABC, abstractmethod
@@ -79,7 +81,10 @@ class Address(int, Enum):
 
 @enum.unique
 class HardwareType(IntFlag):
-    """Used in MGMSG_HW_GET_INFO"""
+    # pylint: disable=W0213
+    """Used in MGMSG_HW_GET_INFO. This is marked as a Flag because we
+    expect to receive unknown values. It is not actually a
+    bit-mappable flag."""
 
     BRUSHLESS_DC_CONTROLLER = 44
     MULTI_CHANNEL_CONTROLLER_MOTHERBOARD = 45
@@ -126,8 +131,7 @@ class EnableState(int, Enum):
     def from_bool(cls, toggle: bool) -> "EnableState":
         if toggle:
             return cls.CHANNEL_ENABLED
-        else:
-            return cls.CHANNEL_DISABLED
+        return cls.CHANNEL_DISABLED
 
 
 @enum.unique

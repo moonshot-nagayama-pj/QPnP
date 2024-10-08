@@ -127,6 +127,7 @@ class PolarizationControllerThorlabsMPC320:
         time.sleep(1)
 
         port_found = False
+        port = None
         for port in serial.tools.list_ports.comports():
             if port.serial_number == self.serial_number:
                 port_found = True
@@ -253,7 +254,8 @@ class PolarizationControllerThorlabsMPC320:
                             message=partial_message,
                             bytes=message_bytes,
                         )
-                except Exception as e:
+                # TODO this is too general, do not catch Exception
+                except Exception as e:  # pylint: disable=W0718
                     self.log.error(
                         event=Event.UNCAUGHT_EXCEPTION,
                         exc_info=e,
@@ -448,7 +450,7 @@ class PolarizationControllerThorlabsMPC320:
             ),
             lambda message: (isinstance(message, AptMessage_MGMSG_POL_GET_PARAMS)),
         )
-        assert type(params) is AptMessage_MGMSG_POL_GET_PARAMS
+        assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
         self.params.velocity = params.velocity
         self.params.home_position = params.home_position
         self.params.jog_step_1 = params.jog_step_1

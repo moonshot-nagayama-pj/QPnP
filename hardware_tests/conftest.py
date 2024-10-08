@@ -30,7 +30,7 @@ structlog.configure(
         structlog.processors.JSONRenderer(),
     ],
     logger_factory=structlog.WriteLoggerFactory(
-        file=target_dir.joinpath("hardware_tests.log").open("a")
+        file=target_dir.joinpath("hardware_tests.log").open("a", encoding="utf-8")
     ),
 )
 

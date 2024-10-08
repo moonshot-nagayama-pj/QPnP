@@ -39,6 +39,8 @@ class WaveplateStub:
         # Enabled channels (enable 1 by default, used internally)
         self.enabled_channels: set[int] = {1}
 
+        self.relative_home: float = 0
+
     def __ensure_port_open(self) -> None:
         if not self.connected:
             self.logger.error("Device not connected")

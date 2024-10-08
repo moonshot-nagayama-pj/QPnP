@@ -4,8 +4,8 @@ from pnpq.devices.switch_stub import Switch
 from pnpq.errors import DeviceDisconnectedError
 
 
-@pytest.fixture
-def connected_switch() -> Switch:
+@pytest.fixture(name="connected_switch")
+def connected_switch_fixture() -> Switch:
     switch = Switch()
     switch.connect()
     return switch
@@ -13,9 +13,9 @@ def connected_switch() -> Switch:
 
 @pytest.mark.parametrize("f", [("bar_state"), ("cross")])
 def test_access_without_connection(f: tuple[str]) -> None:
-    switch = Switch()  # noqa: F841
+    switch = Switch()  # noqa: F841 pylint: disable=W0612
     with pytest.raises(DeviceDisconnectedError):
-        eval(f"switch.{f}()")
+        eval(f"switch.{f}()")  # pylint: disable=W0123
 
 
 def test_set_bar_state(connected_switch: Switch) -> None:

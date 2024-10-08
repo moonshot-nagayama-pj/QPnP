@@ -51,6 +51,10 @@ source .venv/bin/activate
 stdmsg "Checking Python type hints with mypy..."
 mypy
 
+# Run pylint
+stdmsg "Running pylint..."
+pylint src/ tests/ hardware_tests/
+
 # Run isort import formatting
 stdmsg "Checking import formatting with isort..."
 isort . --check --diff
@@ -69,7 +73,7 @@ stdmsg "Checking Shell scripts formatting with shfmt..."
 shfmt --diff --simplify .
 
 # Run linter
-stdmsg "Running Python linter..."
+stdmsg "Running rye lint..."
 rye lint
 
 # Run unit tests
