@@ -51,6 +51,10 @@ source .venv/bin/activate
 stdmsg "Checking Python type hints with mypy..."
 mypy
 
+# Run isort import formatting
+stdmsg "Checking import formatting with isort..."
+isort . --check --diff
+
 # Run black check
 stdmsg "Checking Python code formatting with black..."
 black --check --diff src tests hardware_tests

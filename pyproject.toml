@@ -25,6 +25,7 @@ build-backend = "hatchling.build"
 managed = true
 dev-dependencies = [
     "black>=24.8.0",
+    "isort>=5.13.2",
     "mypy>=1.11.2",
     "pytest>=8.3.2",
 ]
@@ -37,6 +38,9 @@ allow-direct-references = true
 
 [tool.hatch.version]
 path = "src/pnpq/__init__.py"
+
+[tool.isort]
+profile = "black"
 
 [tool.mypy]
 files = ["."]

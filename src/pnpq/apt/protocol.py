@@ -1,13 +1,14 @@
 import dataclasses
 import enum
-
-from ..units import ureg
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum, IntFlag, StrEnum, STRICT
-from pint import Quantity
+from enum import STRICT, Enum, IntFlag, StrEnum
 from struct import Struct
 from typing import ClassVar, Self
+
+from pint import Quantity
+
+from ..units import ureg
 
 
 @enum.unique

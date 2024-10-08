@@ -1,22 +1,19 @@
 import logging
 import time
+
 from serial import Serial
 
+from pnpq.devices.utils import check_usb_hub_connected, get_available_port
 from pnpq.errors import (
-    DevicePortNotFoundError,
     DeviceDisconnectedError,
-    WavePlateMoveNotCompleted,
-    WavePlateHomedNotCompleted,
-    WavePlateGetPosNotCompleted,
-    WaveplateInvalidStepsError,
-    WaveplateInvalidDegreeError,
+    DevicePortNotFoundError,
     WaveplateEnableChannelError,
+    WavePlateGetPosNotCompleted,
+    WavePlateHomedNotCompleted,
+    WaveplateInvalidDegreeError,
     WaveplateInvalidMotorChannelError,
-)
-
-from pnpq.devices.utils import (
-    get_available_port,
-    check_usb_hub_connected,
+    WaveplateInvalidStepsError,
+    WavePlateMoveNotCompleted,
 )
 
 HW_SET_INFO_COMMAND = b"\x05\x00\x00\x00\x50\x01"

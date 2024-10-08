@@ -1,9 +1,10 @@
 # OzOptics ODL module driver
 
+import logging
+import time
+
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import OdlGetPosNotCompleted
-import time
-import logging
 
 
 class OdlOzOptics(OpticalDelayLine):

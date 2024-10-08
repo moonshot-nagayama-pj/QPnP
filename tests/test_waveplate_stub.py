@@ -1,3 +1,5 @@
+import pytest
+
 from pnpq.devices.waveplate_stub import WaveplateStub
 from pnpq.errors import (
     DeviceDisconnectedError,
@@ -5,7 +7,6 @@ from pnpq.errors import (
     WaveplateInvalidMotorChannelError,
     WaveplateInvalidStepsError,
 )
-import pytest
 
 
 @pytest.mark.parametrize(

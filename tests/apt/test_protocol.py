@@ -25,7 +25,6 @@ from pnpq.apt.protocol import (
     HardwareType,
     Status,
 )
-
 from pnpq.units import ureg
 
 

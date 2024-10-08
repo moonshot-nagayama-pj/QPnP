@@ -1,5 +1,5 @@
-from serial import Serial
 import serial.tools.list_ports
+from serial import Serial
 
 
 class OpticalDelayLine:

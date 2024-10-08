@@ -5,13 +5,13 @@
 #
 import logging
 import time
-from pnpq.devices.optical_delay_line import OpticalDelayLine
 
+from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import (
     DeviceDisconnectedError,
-    OdlMoveNotCompleted,
-    OdlHomeNotCompleted,
     OdlGetPosNotCompleted,
+    OdlHomeNotCompleted,
+    OdlMoveNotCompleted,
     OdlMoveOutofRangeError,
 )
 

@@ -4,9 +4,9 @@ import time
 from pnpq.errors import (
     DeviceDisconnectedError,
     WavePlateCustomRotateError,
-    WaveplateInvalidStepsError,
     WaveplateInvalidDegreeError,
     WaveplateInvalidMotorChannelError,
+    WaveplateInvalidStepsError,
 )
 
 

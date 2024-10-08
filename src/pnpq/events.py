@@ -1,6 +1,5 @@
 import enum
-
-from enum import auto, StrEnum
+from enum import StrEnum, auto
 
 
 @enum.unique

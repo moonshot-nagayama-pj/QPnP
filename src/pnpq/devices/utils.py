@@ -1,9 +1,9 @@
 import logging
 import time
-
 from contextlib import contextmanager
-from serial.tools.list_ports import comports as list_comports
 from typing import Callable, Iterator
+
+from serial.tools.list_ports import comports as list_comports
 
 logger = logging.getLogger("utils")
 

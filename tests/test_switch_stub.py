@@ -1,6 +1,7 @@
+import pytest
+
 from pnpq.devices.switch_stub import Switch
 from pnpq.errors import DeviceDisconnectedError
-import pytest
 
 
 @pytest.fixture

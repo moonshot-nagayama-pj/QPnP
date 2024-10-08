@@ -1,16 +1,20 @@
 import dataclasses
-import pnpq.apt
-import serial.tools.list_ports
-import structlog
 import threading
 import time
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from queue import SimpleQueue
+from typing import Callable, Iterator, Optional, Tuple
 
-from .utils import timeout
+import serial.tools.list_ports
+import structlog
+from serial import Serial
+
+import pnpq.apt
+
 from ..apt.protocol import (
     Address,
     AptMessage,
-    AptMessageForStreamParsing,
-    AptMessageId,
     AptMessage_MGMSG_HW_REQ_INFO,
     AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
@@ -23,15 +27,13 @@ from ..apt.protocol import (
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
+    AptMessageForStreamParsing,
+    AptMessageId,
     ChanIdent,
     EnableState,
 )
-from contextlib import contextmanager
-from dataclasses import dataclass, field
 from ..events import Event
-from queue import SimpleQueue
-from serial import Serial
-from typing import Callable, Iterator, Optional, Tuple
+from .utils import timeout
 
 
 @dataclass(kw_only=True)
