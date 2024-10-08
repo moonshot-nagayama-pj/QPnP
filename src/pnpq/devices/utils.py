@@ -1,5 +1,9 @@
-from serial.tools.list_ports import comports as list_comports
 import logging
+import time
+
+from contextlib import contextmanager
+from serial.tools.list_ports import comports as list_comports
+from typing import Callable, Iterator
 
 logger = logging.getLogger("utils")
 
@@ -29,3 +33,26 @@ def check_usb_hub_connected() -> bool:
             logger.debug(f"compatible USB HUB{port} is found")
             return True
     return False
+
+
+class TimeoutException(Exception):
+    pass
+
+
+@contextmanager
+def timeout(timeout: float) -> Iterator[Callable[[], bool]]:
+    """Context manager that yields a function that returns True if the
+    timeout has not been exceeded and throws TimeoutException
+    otherwise, making it suitable for use in loops.
+
+    timeout: float length of timeout, in seconds
+    """
+    deadline = time.perf_counter() + timeout
+
+    def check_timeout() -> bool:
+        if time.perf_counter() < deadline:
+            return True
+        else:
+            raise TimeoutException()
+
+    yield check_timeout
