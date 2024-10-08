@@ -17,6 +17,7 @@ astroid==3.3.5
 black==24.8.0
 click==8.1.7
     # via black
+coverage==7.6.1
 dill==0.3.9
     # via pylint
 flexcache==0.3
