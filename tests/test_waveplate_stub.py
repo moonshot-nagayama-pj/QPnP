@@ -1,3 +1,5 @@
+import pytest
+
 from pnpq.devices.waveplate_stub import WaveplateStub
 from pnpq.errors import (
     DeviceDisconnectedError,
@@ -5,7 +7,6 @@ from pnpq.errors import (
     WaveplateInvalidMotorChannelError,
     WaveplateInvalidStepsError,
 )
-import pytest
 
 
 @pytest.mark.parametrize(
@@ -27,17 +28,17 @@ import pytest
     ],
 )
 def test_access_without_connection(f: str, argc: int) -> None:
-    wp = WaveplateStub()  # noqa: F841
+    wp = WaveplateStub()  # noqa: F841 pylint: disable=W0612
     with pytest.raises(DeviceDisconnectedError):
         # Since the device is not connected, all methods should raise DeviceDisconnectedError
         # For simplicity, 1 is passed as argument for all methods, the value should be small enough to not raise any other errors
         # TODO: Refactor this to be more flexible in the future
         arg = ",".join(["1"] * argc)
-        eval(f"wp.{f}({arg})")
+        eval(f"wp.{f}({arg})")  # pylint: disable=W0123
 
 
-@pytest.fixture
-def connected_waveplate() -> WaveplateStub:
+@pytest.fixture(name="connected_waveplate")
+def connected_waveplate_fixture() -> WaveplateStub:
     wp = WaveplateStub()
     wp.connect()
     return wp

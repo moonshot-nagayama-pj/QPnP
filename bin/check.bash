@@ -39,19 +39,21 @@ cd "${project_dir}"
 # version_string=$(rye --version | head -n 1 | cut -d ' ' -f 2)
 # stdmsg "Rye version: ${version_string}"
 
-# Sync with rye
 stdmsg "Running rye sync..."
 rye sync
 
-# Activate virtual environment
 stdmsg "Activating virtual environment..."
 source .venv/bin/activate
 
-# Run mypy type hint checker
 stdmsg "Checking Python type hints with mypy..."
 mypy
 
-# Run black check
+stdmsg "Running pylint..."
+pylint src/ tests/ hardware_tests/
+
+stdmsg "Checking import formatting with isort..."
+isort . --check --diff
+
 stdmsg "Checking Python code formatting with black..."
 black --check --diff src tests hardware_tests
 
@@ -60,14 +62,12 @@ black --check --diff src tests hardware_tests
 stdmsg "Checking shell scripts with shellcheck..."
 find . -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --enable=all --external-sources
 
-# shfmt
-stdmsg "Checking Shell scripts formatting with shfmt..."
+stdmsg "Checking shell script formatting with shfmt..."
 shfmt --diff --simplify .
 
-# Run linter
-stdmsg "Running Python linter..."
+stdmsg "Running rye lint..."
 rye lint
 
-# Run unit tests
 stdmsg "Running unit tests..."
-rye test
+coverage run -m pytest tests
+coverage report -m

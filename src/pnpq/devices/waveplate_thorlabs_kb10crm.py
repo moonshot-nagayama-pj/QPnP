@@ -1,22 +1,19 @@
 import logging
 import time
+
 from serial import Serial
 
+from pnpq.devices.utils import check_usb_hub_connected, get_available_port
 from pnpq.errors import (
-    DevicePortNotFoundError,
     DeviceDisconnectedError,
-    WavePlateMoveNotCompleted,
-    WavePlateHomedNotCompleted,
-    WavePlateGetPosNotCompleted,
-    WaveplateInvalidStepsError,
-    WaveplateInvalidDegreeError,
+    DevicePortNotFoundError,
     WaveplateEnableChannelError,
+    WavePlateGetPosNotCompleted,
+    WavePlateHomedNotCompleted,
+    WaveplateInvalidDegreeError,
     WaveplateInvalidMotorChannelError,
-)
-
-from pnpq.devices.utils import (
-    get_available_port,
-    check_usb_hub_connected,
+    WaveplateInvalidStepsError,
+    WavePlateMoveNotCompleted,
 )
 
 HW_SET_INFO_COMMAND = b"\x05\x00\x00\x00\x50\x01"
@@ -80,7 +77,7 @@ class Waveplate:
 
     def __ensure_port_open(self) -> None:
         if not self.conn.is_open:
-            self.logger.warn("disconnected")
+            self.logger.error("disconnected")
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def __ensure_less_than_max_steps(self, steps: int) -> None:
@@ -159,7 +156,7 @@ class Waveplate:
 
         self.logger.debug("auto_update_start result: %s", result)
         if result is None:
-            self.logger.warn("auto update start command is not completed")
+            self.logger.error("auto update start command is not completed")
         else:
             self.auto_update = True
         return result
@@ -172,11 +169,12 @@ class Waveplate:
 
         self.logger.debug("auto_update_stop result: %s", result)
         if result is not None:
-            self.logger.warn("auto update stop command is not completed")
+            self.logger.error("auto update stop command is not completed")
         else:
             self.auto_update = False
         return result
 
+    # pylint: disable=R1711
     def disable_channel(self, chanid: int) -> bytes | None:
         self.logger.info("call disable_channel cmd")
         self.__ensure_port_open()
@@ -242,17 +240,15 @@ class Waveplate:
                 "No update response has been received for determining the position"
             )
 
-        else:
-            pos_seq = result[8:12]
-            self.logger.debug("getpos byte result: %s", pos_seq)
-
-            steps = int.from_bytes(pos_seq, byteorder="little")
-            position = steps / self.resolution
-            self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
-            return steps
+        pos_seq = result[8:12]
+        self.logger.debug("getpos byte result: %s", pos_seq)
+        steps = int.from_bytes(pos_seq, byteorder="little")
+        position = steps / self.resolution
+        self.logger.info("getpos extracted result: pos:%s steps:%s", position, steps)
+        return steps
 
     def rotate(self, degree: int | float) -> bytes | None:
-        self.logger.info(f"call rotate cmd: degree={degree}")
+        self.logger.info("call rotate cmd: degree=%s", degree)
         # Absolute Rotation
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
@@ -313,7 +309,7 @@ class Waveplate:
         return result
 
     def rotate_relative(self, degree: float | int) -> bytes | None:
-        self.logger.info(f"call rotate_relative cmd: degree={degree}")
+        self.logger.info("call rotate_relative cmd: degree=%s", degree)
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
@@ -332,7 +328,7 @@ class Waveplate:
         return result
 
     def custom_home(self, degree: float | int) -> None:
-        self.logger.info(f"call custom_home cmd: degree={degree}")
+        self.logger.info("call custom_home cmd: degree=%s", degree)
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 

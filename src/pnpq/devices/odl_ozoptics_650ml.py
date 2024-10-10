@@ -1,9 +1,10 @@
 # OzOptics ODL module driver
 
+import logging
+import time
+
 from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import OdlGetPosNotCompleted
-import time
-import logging
 
 
 class OdlOzOptics(OpticalDelayLine):
@@ -26,18 +27,14 @@ class OdlOzOptics(OpticalDelayLine):
 
     def connect(self) -> None:
         if self.conn.is_open == 0:
-            try:
-                self.conn.open()
-            except Exception as err:
-                raise RuntimeError("Connection failed: " + str(err))
+            self.conn.open()
 
     def move(self, dist: float) -> None:
         if not self.conn.is_open:
             raise RuntimeError("Moving ODL failed: can not connect to ODL device")
         if dist > 200 or dist < 0:
-            raise Exception("Invalid Move Parameter")
-        else:
-            self.set_step(int(dist * self.resolution))
+            raise ValueError("Invalid Move Parameter")
+        self.set_step(int(dist * self.resolution))
 
     def set_step(self, value: int) -> str:
         cmd = "S" + str(value)
@@ -161,24 +158,24 @@ class OdlOzOptics(OpticalDelayLine):
         device_output = self.serial_read()
         return device_output
 
-    def readKey(self, key: str, retries: int = 5) -> str:
+    def read_key(self, key: str, retries: int = 5) -> str:
         device_output = ""
-        got_OK = False
-        while self.conn.in_waiting > 0 or (got_OK is False and retries > 0):
+        got_ok = False
+        while self.conn.in_waiting > 0 or (got_ok is False and retries > 0):
             device_output += (self.conn.read(self.conn.in_waiting)).decode("iso-8859-1")
             # command output is complete.
             if device_output.find(key) >= 0:
-                got_OK = True
+                got_ok = True
             time.sleep(0.05)
             retries -= 1
         return device_output
 
-    def readall(self, sectimeout: int = 5) -> tuple[bool, str]:
+    def readall(self) -> tuple[bool, str]:
         ok = False
-        bytes = self.conn.read(1)
+        read_bytes = self.conn.read(1)
         while self.conn.in_waiting > 0:
-            bytes += self.conn.read(1)
-        msg = bytes.decode("UTF-8")
+            read_bytes += self.conn.read(1)
+        msg = read_bytes.decode("UTF-8")
         ok = True
         return ok, msg
 

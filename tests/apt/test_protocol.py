@@ -1,3 +1,5 @@
+# pylint: disable=C0103
+
 from pnpq.apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_DISCONNECT,
@@ -25,7 +27,6 @@ from pnpq.apt.protocol import (
     HardwareType,
     Status,
 )
-
 from pnpq.units import ureg
 
 

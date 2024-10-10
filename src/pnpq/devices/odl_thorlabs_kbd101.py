@@ -5,13 +5,13 @@
 #
 import logging
 import time
-from pnpq.devices.optical_delay_line import OpticalDelayLine
 
+from pnpq.devices.optical_delay_line import OpticalDelayLine
 from pnpq.errors import (
     DeviceDisconnectedError,
-    OdlMoveNotCompleted,
-    OdlHomeNotCompleted,
     OdlGetPosNotCompleted,
+    OdlHomeNotCompleted,
+    OdlMoveNotCompleted,
     OdlMoveOutofRangeError,
 )
 
@@ -87,7 +87,7 @@ class OdlThorlabs(OpticalDelayLine):
         if min_threshold <= steps <= max_threshold:
             return
 
-        self.logger.error(f"ODL({self}) required steps:({steps}) is out of range")
+        self.logger.error("ODL(%s) required steps:(%s) is out of range", self, steps)
         raise OdlMoveOutofRangeError(
             f"Move request for device{self} is out of range min({self.min_move}) - max({self.max_move})"
         )
@@ -99,7 +99,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         if not self.conn.is_open:
             raise DeviceDisconnectedError("ODL device is disconneced")
-        self.logger.info(f"({self}): Connecting to Thorlabs ODL module")
+        self.logger.info("(%s): Connecting to Thorlabs ODL module", self)
         # Enable Channel ID (0)
         self.conn.write(ENABLE_CHANNEL_SET_COMMAND)
         time.sleep(0.1)
@@ -136,7 +136,7 @@ class OdlThorlabs(OpticalDelayLine):
     def move(self, move_mm: int) -> None:
         move_steps = move_mm * self.resolution
         self.logger.debug(
-            f"move command recieved: move_mm:({move_mm})->move_steps:({move_steps})"
+            "move command recieved: move_mm:(%s)->move_steps:(%s)", move_mm, move_steps
         )
         self.__ensure_port_open()
         self.__ensure_steps_in_range(move_steps)
@@ -151,7 +151,7 @@ class OdlThorlabs(OpticalDelayLine):
             #    f"ODL({self}): No moved_completed response has been received"
             # )
         self.current_steps = move_steps
-        self.logger.debug(f"Move completed position_steps({self.current_steps})!")
+        self.logger.debug("Move completed position_steps(%s)", self.current_steps)
 
     def step_forward(self, steps: int) -> None:
         self.__ensure_port_open()
@@ -250,7 +250,7 @@ class OdlThorlabs(OpticalDelayLine):
 
         steps = int.from_bytes(pos_seq, byteorder="little")
         position = steps / self.resolution
-        self.logger.info(f"getpos extracted result: pos:{position} steps:{steps}")
+        self.logger.info("getpos extracted result: pos:%s steps:%s", position, steps)
         self.current_steps = steps
         return steps
 

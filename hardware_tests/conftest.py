@@ -1,11 +1,12 @@
-import structlog
 import sys
 import threading
-
 from pathlib import Path
-from pnpq.events import Event
 from types import TracebackType
 from typing import Any
+
+import structlog
+
+from pnpq.events import Event
 
 
 def find_project_dir(path: Path) -> Path:
@@ -29,7 +30,7 @@ structlog.configure(
         structlog.processors.JSONRenderer(),
     ],
     logger_factory=structlog.WriteLoggerFactory(
-        file=target_dir.joinpath("hardware_tests.log").open("a")
+        file=target_dir.joinpath("hardware_tests.log").open("a", encoding="utf-8")
     ),
 )
 

@@ -3,7 +3,8 @@ name = "pnpq"
 dynamic = ["version"]
 description = "PnPQ is a python library package for controlling optical devices in quantum networks"
 authors = [
-    { name = "Amin Taherkhani", email = "amin@sfc.wide.ad.jp" }
+    { name = "Amin Taherkhani", email = "amin@sfc.wide.ad.jp" },
+    { name = "Andrew Todd", email = "at@auspicacious.org" },
 ]
 dependencies = [
     "pyserial>=3.5",
@@ -25,7 +26,10 @@ build-backend = "hatchling.build"
 managed = true
 dev-dependencies = [
     "black>=24.8.0",
+    "coverage>=7.6.1",
+    "isort>=5.13.2",
     "mypy>=1.11.2",
+    "pylint>=3.3.1",
     "pytest>=8.3.2",
 ]
 
@@ -38,9 +42,19 @@ allow-direct-references = true
 [tool.hatch.version]
 path = "src/pnpq/__init__.py"
 
+[tool.isort]
+profile = "black"
+
 [tool.mypy]
 files = ["."]
 strict = true
+
+[tool.pylint.format]
+max-line-length = "88"
+
+# See https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
+[tool.pylint."messages control"]
+disable = ["raw-checker-failed", "bad-inline-option", "locally-disabled", "file-ignored", "suppressed-message", "deprecated-pragma", "use-symbolic-message-instead", "use-implicit-booleaness-not-comparison-to-string", "use-implicit-booleaness-not-comparison-to-zero", "missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "line-too-long", "duplicate-code", "too-many-instance-attributes", "too-few-public-methods", "too-many-public-methods", "too-many-arguments", "too-many-locals", "too-many-positional-arguments", "fixme"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
