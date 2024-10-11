@@ -41,6 +41,8 @@ class AptMessageId(int, Enum):
     MGMSG_POL_REQ_PARAMS = 0x0531
     MGMSG_POL_SET_PARAMS = 0x0530
 
+    MGMSG_RESTOREFACTORYSETTINGS = 0x0686
+
 
 @enum.unique
 class UnimplementedAptMessageId(int, Enum):
@@ -58,8 +60,6 @@ class UnimplementedAptMessageId(int, Enum):
     MGMSG_MOT_MOVE_STOPPED = 0x0466
 
     MGMSG_MOT_SET_EEPROMPARAMS = 0x04B9
-
-    MGMSG_RESTOREFACTORYSETTINGS = 0x0686
 
 
 @enum.unique
@@ -793,3 +793,8 @@ class AptMessage_MGMSG_POL_REQ_PARAMS(AptMessageHeaderOnlyNoParams):
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_POL_SET_PARAMS(AptMessageWithDataPolParams):
     message_id = AptMessageId.MGMSG_POL_SET_PARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_RESTOREFACTORYSETTINGS(AptMessageHeaderOnlyNoParams):
+    message_id = AptMessageId.MGMSG_RESTOREFACTORYSETTINGS
