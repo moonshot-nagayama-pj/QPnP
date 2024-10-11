@@ -13,10 +13,7 @@ dependencies = [
     "structlog>=24.4.0",
 ]
 readme = "README.md"
-requires-python = ">= 3.8"
-
-[project.scripts]
-hello = "pnpq:hello"
+requires-python = ">= 3.12"
 
 [build-system]
 requires = ["hatchling"]
