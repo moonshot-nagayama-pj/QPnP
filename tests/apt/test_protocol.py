@@ -21,6 +21,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
+    AptMessage_MGMSG_RESTOREFACTORYSETTINGS,
     ChanIdent,
     EnableState,
     FirmwareVersion,
@@ -421,3 +422,19 @@ def test_AptMessage_MGMSG_POL_SET_PARAMS_from_bytes() -> None:
     assert msg.jog_step_1 == 25
     assert msg.jog_step_2 == 25
     assert msg.jog_step_3 == 25
+
+
+def test_AptMessage_MGMSG_RESTOREFACTORYSETTINGS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_RESTOREFACTORYSETTINGS.from_bytes(
+        b"\x86\x06\x00\x00\x50\x01"
+    )
+    assert msg.message_id == 0x0686
+    assert msg.destination == 0x50
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_RESTOREFACTORYSETTINGS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_RESTOREFACTORYSETTINGS(
+        destination=Address.GENERIC_USB, source=Address.HOST_CONTROLLER
+    )
+    assert msg.to_bytes() == b"\x86\x06\x00\x00\x50\x01"
