@@ -10,6 +10,7 @@ import serial.tools.list_ports
 import structlog
 from serial import Serial
 
+from pint import Quantity, DimensionalityError
 import pnpq.apt
 
 from ..apt.protocol import (
@@ -34,12 +35,12 @@ from ..apt.protocol import (
 )
 from ..events import Event
 from .utils import timeout
-
+from ..units import ureg
 
 @dataclass(kw_only=True)
 class PolarizationControllerParams:
     velocity: int = 0
-    home_position: int = 0
+    home_position: Quantity = 0 * ureg.degree
     jog_step_1: int = 0
     jog_step_2: int = 0
     jog_step_3: int = 0
@@ -414,12 +415,8 @@ class PolarizationControllerThorlabsMPC320:
             )
         )
 
-    def move_absolute(self, chan_ident: ChanIdent, absolute_degree: float) -> None:
-        if absolute_degree < 0 or absolute_degree > 170:
-            raise ValueError(
-                f"Absolute degree must be between 0 and 170. Value given was {absolute_degree}"
-            )
-        absolute_distance = round(absolute_degree * (1370 / 170))
+    def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
+        absolute_distance = round(position.to('mpc320_step').magnitude)
         self.set_channel_enabled(chan_ident, True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
@@ -452,7 +449,7 @@ class PolarizationControllerThorlabsMPC320:
         )
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
         self.params.velocity = params.velocity
-        self.params.home_position = params.home_position
+        self.params.home_position = params.home_position * ureg.mpc320_step
         self.params.jog_step_1 = params.jog_step_1
         self.params.jog_step_2 = params.jog_step_2
         self.params.jog_step_3 = params.jog_step_3
@@ -481,7 +478,7 @@ class PolarizationControllerThorlabsMPC320:
     def set_params(
         self,
         velocity: None | int = None,
-        home_position: None | int = None,
+        home_position: None | Quantity = None,
         jog_step_1: None | int = None,
         jog_step_2: None | int = None,
         jog_step_3: None | int = None,
@@ -490,7 +487,8 @@ class PolarizationControllerThorlabsMPC320:
         if velocity is not None:
             replaced_params["velocity"] = velocity
         if home_position is not None:
-            replaced_params["home_position"] = home_position
+            save_home_position = round(home_position.to('mpc320_step').magnitude)
+            replaced_params["home_position"] = save_home_position
         if jog_step_1 is not None:
             replaced_params["jog_step_1"] = jog_step_1
         if jog_step_2 is not None:
@@ -503,7 +501,7 @@ class PolarizationControllerThorlabsMPC320:
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
                 velocity=new_params.velocity,
-                home_position=new_params.home_position,
+                home_position=new_params.home_position.magnitude,
                 jog_step_1=new_params.jog_step_1,
                 jog_step_2=new_params.jog_step_2,
                 jog_step_3=new_params.jog_step_3,
