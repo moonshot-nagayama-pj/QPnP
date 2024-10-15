@@ -8,9 +8,9 @@ from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
 import structlog
+from pint import Quantity
 from serial import Serial
 
-from pint import Quantity, DimensionalityError
 import pnpq.apt
 
 from ..apt.protocol import (
@@ -34,8 +34,9 @@ from ..apt.protocol import (
     EnableState,
 )
 from ..events import Event
-from .utils import timeout
 from ..units import ureg
+from .utils import timeout
+
 
 @dataclass(kw_only=True)
 class PolarizationControllerParams:
@@ -416,7 +417,7 @@ class PolarizationControllerThorlabsMPC320:
         )
 
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
-        absolute_distance = round(position.to('mpc320_step').magnitude)
+        absolute_distance = round(position.to("mpc320_step").magnitude)
         self.set_channel_enabled(chan_ident, True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
@@ -483,19 +484,18 @@ class PolarizationControllerThorlabsMPC320:
         jog_step_2: None | int = None,
         jog_step_3: None | int = None,
     ) -> None:
-        replaced_params: dict[str, int] = {}
+        replaced_params: dict[str, int | Quantity] = {}
         if velocity is not None:
             replaced_params["velocity"] = velocity
         if home_position is not None:
-            save_home_position = round(home_position.to('mpc320_step').magnitude)
-            replaced_params["home_position"] = save_home_position
+            replaced_params["home_position"] = home_position
         if jog_step_1 is not None:
             replaced_params["jog_step_1"] = jog_step_1
         if jog_step_2 is not None:
             replaced_params["jog_step_2"] = jog_step_2
         if jog_step_3 is not None:
             replaced_params["jog_step_3"] = jog_step_3
-        new_params = dataclasses.replace(self.params, **replaced_params)
+        new_params = dataclasses.replace(self.params, **replaced_params)  # type: ignore
         self.send_message_no_reply(
             AptMessage_MGMSG_POL_SET_PARAMS(
                 destination=Address.GENERIC_USB,
