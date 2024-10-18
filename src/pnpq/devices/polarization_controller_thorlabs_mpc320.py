@@ -427,7 +427,7 @@ class PolarizationControllerThorlabsMPC320:
             ) from exc
         if absolute_degree < 0 or absolute_degree > 170:
             raise ValueError(
-                f"Provided value must be between 0 and 170 degrees (or equivalent). Value given was {absolute_degree} degrees."
+                f"Absolute position must be between 0 and 170 degrees (or equivalent). Value given was {absolute_degree} degrees."
             )
         self.set_channel_enabled(chan_ident, True)
         self.log.debug("Sending move_absolute command...")
