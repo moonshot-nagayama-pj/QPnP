@@ -71,3 +71,11 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     # device.move_absolute(ChanIdent.CHANNEL_1, 0 * ureg.degree)
     # device.move_absolute(ChanIdent.CHANNEL_2, 0 * ureg.degree)
     # device.move_absolute(ChanIdent.CHANNEL_3, 0 * ureg.degree)
+
+
+def test_illegal_angles(device: PolarizationControllerThorlabsMPC320) -> None:
+    device.identify(ChanIdent.CHANNEL_1)
+
+    with pytest.raises(ValueError):
+        device.move_absolute(ChanIdent.CHANNEL_1, 171 * ureg.degree)
+        device.move_absolute(ChanIdent.CHANNEL_1, -1 * ureg.degree)
