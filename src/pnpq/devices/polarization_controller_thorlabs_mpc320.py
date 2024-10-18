@@ -8,7 +8,7 @@ from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
 import structlog
-from pint import Quantity
+from pint import DimensionalityError, Quantity
 from serial import Serial
 
 import pnpq.apt
@@ -417,7 +417,18 @@ class PolarizationControllerThorlabsMPC320:
         )
 
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
-        absolute_distance = round(position.to("mpc320_step").magnitude)
+        # Convert distance to mpc320 steps and check for errors
+        try:
+            absolute_distance = round(position.to("mpc320_step").magnitude)
+            absolute_degree = round(position.to("degree").magnitude)
+        except DimensionalityError as exc:
+            raise ValueError(
+                f"Quantity {position} cannot be converted to mpc320_step."
+            ) from exc
+        if absolute_degree < 0 or absolute_degree > 170:
+            raise ValueError(
+                f"Provided value must be between 0 and 170 degrees (or equivalent). Value given was {absolute_degree} degrees."
+            )
         self.set_channel_enabled(chan_ident, True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
