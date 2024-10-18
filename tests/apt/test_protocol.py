@@ -12,12 +12,15 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_POSCOUNTER,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_SET_POSCOUNTER,
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
@@ -213,6 +216,63 @@ def test_AptMessage_MGMSG_MOD_IDENTIFY_to_bytes() -> None:
         source=Address.HOST_CONTROLLER,
     )
     assert msg.to_bytes() == b"\x23\x02\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_GET_POSCOUNTER_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_POSCOUNTER.from_bytes(
+        bytes.fromhex("1204 0600 A2 01 0100400D0300")
+    )
+
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0412
+    assert msg.source == 0x01
+    assert msg.chan_ident == 0x01
+    assert msg.position == 200000
+
+
+def test_AptMessage_MGMSG_MOT_GET_POSCOUNTER_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_POSCOUNTER(
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        chan_ident=ChanIdent.CHANNEL_1,
+        position=200000,
+    )
+    assert msg.to_bytes() == bytes.fromhex("1204 0600 A2 01 0100400D0300")
+
+
+def test_AptMessage_MGMSG_MOT_SET_POSCOUNTER_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_POSCOUNTER.from_bytes(
+        bytes.fromhex("1004 0600 A2 01 0100400D0300")
+    )
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0410
+    assert msg.source == 0x01
+    assert msg.chan_ident == 0x01
+    assert msg.position == 200000
+
+
+def test_AptMessage_MGMSG_MOT_SET_POSCOUNTER_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_POSCOUNTER(
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        chan_ident=ChanIdent.CHANNEL_1,
+        position=200000,
+    )
+    assert msg.to_bytes() == bytes.fromhex("1004 0600 A2 01 0100400D0300")
+
+
+def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_POSCOUNTER.from_bytes(b"\x11\x04\x00\x00\x50\x01")
+    assert msg.message_id == 0x0411
+    assert msg.destination == 0x50
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_POSCOUNTER(
+        destination=Address.GENERIC_USB, source=Address.HOST_CONTROLLER
+    )
+    assert msg.to_bytes() == b"\x11\x04\x00\x00\x50\x01"
 
 
 def test_AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE_from_bytes() -> None:
