@@ -8,7 +8,7 @@ from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
 import structlog
-from pint import DimensionalityError, Quantity
+from pint import Quantity
 from serial import Serial
 
 import pnpq.apt

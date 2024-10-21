@@ -1,5 +1,5 @@
-from pint import DimensionalityError
 import pytest
+from pint import DimensionalityError
 
 from pnpq.apt.protocol import ChanIdent
 from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
