@@ -418,13 +418,8 @@ class PolarizationControllerThorlabsMPC320:
 
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
         # Convert distance to mpc320 steps and check for errors
-        try:
-            absolute_distance = round(position.to("mpc320_step").magnitude)
-            absolute_degree = round(position.to("degree").magnitude)
-        except DimensionalityError as exc:
-            raise ValueError(
-                f"Quantity {position} cannot be converted to mpc320_step."
-            ) from exc
+        absolute_distance = round(position.to("mpc320_step").magnitude)
+        absolute_degree = round(position.to("degree").magnitude)
         if absolute_degree < 0 or absolute_degree > 170:
             raise ValueError(
                 f"Absolute position must be between 0 and 170 degrees (or equivalent). Value given was {absolute_degree} degrees."
