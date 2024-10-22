@@ -59,8 +59,8 @@ class Waveplate:
 
         self.resolution = 136533
         self.max_steps = 136533
-        self.rotate_timeout = 10
-        self.home_timeout = 20
+        self.rotate_timeout = 30
+        self.home_timeout = 30
         self.max_channel = 1
         self.auto_update = False
         self.hub_connected = check_usb_hub_connected()
