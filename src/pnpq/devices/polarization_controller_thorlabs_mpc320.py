@@ -8,6 +8,7 @@ from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
 import structlog
+from pint import Quantity
 from serial import Serial
 
 import pnpq.apt
@@ -33,13 +34,14 @@ from ..apt.protocol import (
     EnableState,
 )
 from ..events import Event
+from ..units import ureg
 from .utils import timeout
 
 
 @dataclass(kw_only=True)
 class PolarizationControllerParams:
     velocity: int = 0
-    home_position: int = 0
+    home_position: Quantity = 0 * ureg.degree
     jog_step_1: int = 0
     jog_step_2: int = 0
     jog_step_3: int = 0
@@ -414,12 +416,14 @@ class PolarizationControllerThorlabsMPC320:
             )
         )
 
-    def move_absolute(self, chan_ident: ChanIdent, absolute_degree: float) -> None:
+    def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
+        # Convert distance to mpc320 steps and check for errors
+        absolute_distance = round(position.to("mpc320_step").magnitude)
+        absolute_degree = round(position.to("degree").magnitude)
         if absolute_degree < 0 or absolute_degree > 170:
             raise ValueError(
-                f"Absolute degree must be between 0 and 170. Value given was {absolute_degree}"
+                f"Absolute position must be between 0 and 170 degrees (or equivalent). Value given was {absolute_degree} degrees."
             )
-        absolute_distance = round(absolute_degree * (1370 / 170))
         self.set_channel_enabled(chan_ident, True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
@@ -452,7 +456,7 @@ class PolarizationControllerThorlabsMPC320:
         )
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
         self.params.velocity = params.velocity
-        self.params.home_position = params.home_position
+        self.params.home_position = params.home_position * ureg.mpc320_step
         self.params.jog_step_1 = params.jog_step_1
         self.params.jog_step_2 = params.jog_step_2
         self.params.jog_step_3 = params.jog_step_3
@@ -481,12 +485,12 @@ class PolarizationControllerThorlabsMPC320:
     def set_params(
         self,
         velocity: None | int = None,
-        home_position: None | int = None,
+        home_position: None | Quantity = None,
         jog_step_1: None | int = None,
         jog_step_2: None | int = None,
         jog_step_3: None | int = None,
     ) -> None:
-        replaced_params: dict[str, int] = {}
+        replaced_params: dict[str, int | Quantity] = {}
         if velocity is not None:
             replaced_params["velocity"] = velocity
         if home_position is not None:
@@ -497,13 +501,13 @@ class PolarizationControllerThorlabsMPC320:
             replaced_params["jog_step_2"] = jog_step_2
         if jog_step_3 is not None:
             replaced_params["jog_step_3"] = jog_step_3
-        new_params = dataclasses.replace(self.params, **replaced_params)
+        new_params = dataclasses.replace(self.params, **replaced_params)  # type: ignore
         self.send_message_no_reply(
             AptMessage_MGMSG_POL_SET_PARAMS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
                 velocity=new_params.velocity,
-                home_position=new_params.home_position,
+                home_position=new_params.home_position.magnitude,
                 jog_step_1=new_params.jog_step_1,
                 jog_step_2=new_params.jog_step_2,
                 jog_step_3=new_params.jog_step_3,
