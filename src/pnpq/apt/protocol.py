@@ -435,7 +435,9 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
     status: Status
 
     def __post_init__(self) -> None:
-        self.motor_current.check("[current]")
+        # Ensure that a unit of current was passed in by attempting to
+        # convert it to milliamps.
+        self.motor_current.to(ureg.milliamp)
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> Self:

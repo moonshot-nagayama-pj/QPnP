@@ -1,4 +1,6 @@
 # pylint: disable=C0103
+import pytest
+from pint import DimensionalityError
 
 from pnpq.apt.protocol import (
     Address,
@@ -256,6 +258,19 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
     assert msg.to_bytes() == bytes.fromhex(
         "9104 0e00 81 22 0100 01000000 0100 FFFF 07000000"
     )
+
+
+def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_invalid_unit() -> None:
+    with pytest.raises(DimensionalityError):
+        AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
+            destination=Address.HOST_CONTROLLER,
+            source=Address.BAY_1,
+            chan_ident=ChanIdent.CHANNEL_1,
+            position=1,
+            velocity=1,
+            motor_current=(-1 * ureg.meter),
+            status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+        )
 
 
 def test_AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE_from_bytes() -> None:
