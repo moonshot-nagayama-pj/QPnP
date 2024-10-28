@@ -1,4 +1,3 @@
-import dataclasses
 import threading
 import time
 from contextlib import contextmanager
@@ -8,34 +7,23 @@ from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
 import structlog
-from pint import Quantity
 from serial import Serial
 
 import pnpq.apt
 
+from ..devices.utils import timeout
+from ..events import Event
 from .protocol import (
     Address,
     AptMessage,
     AptMessage_MGMSG_HW_REQ_INFO,
-    AptMessage_MGMSG_MOD_IDENTIFY,
-    AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
-    AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
-    AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
-    AptMessage_MGMSG_MOT_MOVE_HOME,
-    AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
-    AptMessage_MGMSG_POL_GET_PARAMS,
-    AptMessage_MGMSG_POL_REQ_PARAMS,
-    AptMessage_MGMSG_POL_SET_PARAMS,
     AptMessageForStreamParsing,
     AptMessageId,
     ChanIdent,
-    EnableState,
 )
-from ..events import Event
-from ..units import ureg
-from ..devices.utils import timeout
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptConnection:
