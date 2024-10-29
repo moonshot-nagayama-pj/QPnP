@@ -85,11 +85,10 @@ class AptConnection:
 
     log = structlog.get_logger()
 
-    # The actual properties of the device start here.
+    # Required inputs are defined below.
 
     serial_number: str
 
-    # Retrieved with MGMSG_POL_REQ_PARAMS
 
     def __post_init__(self) -> None:
         self.log.debug("Starting connection post-init...")
