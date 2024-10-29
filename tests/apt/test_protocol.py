@@ -244,7 +244,13 @@ def test_AptMessage_MGMSG_MOT_SET_POSCOUNTER_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_SET_POSCOUNTER.from_bytes(
         bytes.fromhex("1004 0600 A2 01 0100400D0300")
     )
+
+    # There's an error in the official documentation
+    # where they say that 0xA2 should be channel 2 (0x02)
+    # after setting the highest bit to 0.
+    # Channel 2 would actually be transmitted as 0x82.
     assert msg.destination == 0x22
+
     assert msg.message_id == 0x0410
     assert msg.source == 0x01
     assert msg.chan_ident == 0x01
@@ -262,7 +268,8 @@ def test_AptMessage_MGMSG_MOT_SET_POSCOUNTER_to_bytes() -> None:
 
 
 def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_from_bytes() -> None:
-    msg = AptMessage_MGMSG_MOT_REQ_POSCOUNTER.from_bytes(b"\x11\x04\x00\x00\x50\x01")
+    msg = AptMessage_MGMSG_MOT_REQ_POSCOUNTER.from_bytes(b"\x11\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
     assert msg.message_id == 0x0411
     assert msg.destination == 0x50
     assert msg.source == 0x01
@@ -270,9 +277,11 @@ def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_from_bytes() -> None:
 
 def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_to_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_REQ_POSCOUNTER(
-        destination=Address.GENERIC_USB, source=Address.HOST_CONTROLLER
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
     )
-    assert msg.to_bytes() == b"\x11\x04\x00\x00\x50\x01"
+    assert msg.to_bytes() == b"\x11\x04\x01\x00\x50\x01"
 
 
 def test_AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE_from_bytes() -> None:
