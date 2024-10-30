@@ -1,4 +1,5 @@
 import dataclasses
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -10,10 +11,12 @@ from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_MOD_IDENTIFY,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
+    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
@@ -38,6 +41,10 @@ class PolarizationControllerThorlabsMPC320:
 
     log = structlog.get_logger()
 
+    # Polling threads
+    tx_poller_thread: threading.Thread = field(init=False)
+    tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
+
     # Stored in a non-frozen dataclass so that we can refresh them as
     # the configuration changes
     params: PolarizationControllerParams = field(
@@ -45,7 +52,53 @@ class PolarizationControllerThorlabsMPC320:
     )
 
     def __post_init__(self) -> None:
+        # Start polling thread
+        object.__setattr__(
+            self,
+            "tx_poller_thread",
+            threading.Thread(target=self.tx_poll, daemon=True),
+        )
+        self.tx_poller_thread.start()
+
         self.refresh_params()
+
+    # Polling thread for sending status update requests
+    def tx_poll(self) -> None:
+        with self.tx_poller_thread_lock:
+            while True:
+                for chan in self.connection.active_channels:
+                    self.connection.send_message_unordered(
+                        AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
+                            chan_ident=chan,
+                            destination=Address.GENERIC_USB,
+                            source=Address.HOST_CONTROLLER,
+                        )
+                    )
+                self.connection.send_message_unordered(
+                    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
+                        destination=Address.GENERIC_USB,
+                        source=Address.HOST_CONTROLLER,
+                    )
+                )
+                # If we are currently waiting for a reply to a message
+                # we sent, poll every 0.2 seconds to ensure quick
+                # response to state changes. If we are not waiting for
+                # a reply, poll at least once every second to reduce
+                # the amount of noise in logs.
+                #
+                # The tx_ordered_sender thread can request a faster
+                # update by setting the
+                # tx_ordered_sender_awaiting_reply event.
+                if self.connection.tx_ordered_sender_awaiting_reply.is_set():
+                    time.sleep(0.2)
+                else:
+                    # The documentation for
+                    # MGMSG_MOT_ACK_USTATUSUPDATE suggests that it
+                    # should be sent at least once a second. This will
+                    # probably send slightly _less_ than once a
+                    # second, so, if we start having issues, we should
+                    # decrease this interval.
+                    self.connection.tx_ordered_sender_awaiting_reply.wait(1)
 
     def home(self, chan_ident: ChanIdent) -> None:
         self.set_channel_enabled(chan_ident, True)

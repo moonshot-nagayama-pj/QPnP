@@ -17,8 +17,6 @@ from .protocol import (
     Address,
     AptMessage,
     AptMessage_MGMSG_HW_REQ_INFO,
-    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
-    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessageForStreamParsing,
     AptMessageId,
     ChanIdent,
@@ -80,15 +78,11 @@ class AptConnection:
         default_factory=threading.Lock
     )
 
-    tx_poller_thread: threading.Thread = field(init=False)
-    tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
-
     log = structlog.get_logger()
 
     # Required inputs are defined below.
 
     serial_number: str
-
 
     def __post_init__(self) -> None:
         self.log.debug("Starting connection post-init...")
@@ -137,13 +131,6 @@ class AptConnection:
         #
         # TODO use some sort of thread manager to safely deal with
         # uncaught exceptions and other errors.
-        object.__setattr__(
-            self,
-            "tx_poller_thread",
-            threading.Thread(target=self.tx_poll, daemon=True),
-        )
-        self.tx_poller_thread.start()
-
         object.__setattr__(
             self,
             "rx_dispatcher_thread",
@@ -233,43 +220,6 @@ class AptConnection:
                         partial_message=partial_message,
                         full_message=full_message,
                     )
-
-    def tx_poll(self) -> None:
-        with self.tx_poller_thread_lock:
-            while True:
-                for chan in self.active_channels:
-                    self.send_message_unordered(
-                        AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
-                            chan_ident=chan,
-                            destination=Address.GENERIC_USB,
-                            source=Address.HOST_CONTROLLER,
-                        )
-                    )
-                self.send_message_unordered(
-                    AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
-                        destination=Address.GENERIC_USB,
-                        source=Address.HOST_CONTROLLER,
-                    )
-                )
-                # If we are currently waiting for a reply to a message
-                # we sent, poll every 0.2 seconds to ensure quick
-                # response to state changes. If we are not waiting for
-                # a reply, poll at least once every second to reduce
-                # the amount of noise in logs.
-                #
-                # The tx_ordered_sender thread can request a faster
-                # update by setting the
-                # tx_ordered_sender_awaiting_reply event.
-                if self.tx_ordered_sender_awaiting_reply.is_set():
-                    time.sleep(0.2)
-                else:
-                    # The documentation for
-                    # MGMSG_MOT_ACK_USTATUSUPDATE suggests that it
-                    # should be sent at least once a second. This will
-                    # probably send slightly _less_ than once a
-                    # second, so, if we start having issues, we should
-                    # decrease this interval.
-                    self.tx_ordered_sender_awaiting_reply.wait(1)
 
     @contextmanager
     def rx_subscribe(self) -> Iterator[SimpleQueue[AptMessage]]:
