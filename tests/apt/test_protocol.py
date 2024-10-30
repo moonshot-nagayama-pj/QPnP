@@ -245,7 +245,7 @@ def test_AptMessage_MGMSG_MOT_SET_POSCOUNTER_from_bytes() -> None:
         bytes.fromhex("1004 0600 A2 01 0100400D0300")
     )
 
-# The official documentation's example refers to this as "Channel 2," but this is actually bay 1.
+    # The official documentation's example refers to this as "Channel 2," but this is actually bay 1.
     assert msg.destination == 0x22
 
     assert msg.message_id == 0x0410
