@@ -19,7 +19,6 @@ from .protocol import (
     AptMessage_MGMSG_HW_REQ_INFO,
     AptMessageForStreamParsing,
     AptMessageId,
-    ChanIdent,
 )
 
 

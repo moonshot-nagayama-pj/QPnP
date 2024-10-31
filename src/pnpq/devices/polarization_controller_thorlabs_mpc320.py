@@ -46,7 +46,7 @@ class PolarizationControllerThorlabsMPC320:
     tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
 
     # Setup channels for the device
-    active_channels: frozenset[ChanIdent] = frozenset(
+    available_channels: frozenset[ChanIdent] = frozenset(
         [
             ChanIdent.CHANNEL_1,
             ChanIdent.CHANNEL_2,
@@ -75,7 +75,7 @@ class PolarizationControllerThorlabsMPC320:
     def tx_poll(self) -> None:
         with self.tx_poller_thread_lock:
             while True:
-                for chan in self.active_channels:
+                for chan in self.available_channels:
                     self.connection.send_message_unordered(
                         AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
                             chan_ident=chan,
