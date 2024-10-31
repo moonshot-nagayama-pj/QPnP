@@ -36,14 +36,6 @@ class AptConnection:
         None  # None means wait forever, until the requested number of bytes are received
     )
 
-    active_channels: frozenset[ChanIdent] = frozenset(
-        [
-            ChanIdent.CHANNEL_1,
-            ChanIdent.CHANNEL_2,
-            ChanIdent.CHANNEL_3,
-        ]
-    )
-
     connection: Serial = field(init=False)
 
     rx_dispatcher_thread: threading.Thread = field(init=False)
