@@ -45,6 +45,10 @@ class AptMessageId(int, Enum):
     MGMSG_POL_REQ_PARAMS = 0x0531
     MGMSG_POL_SET_PARAMS = 0x0530
 
+    MGMSG_MOT_MOVE_JOG = 0x046A
+    MGMSG_MOT_MOVE_STOP = 0x0465
+    MGMSG_MOT_MOVE_STOPPED = 0x0466
+
     MGMSG_RESTOREFACTORYSETTINGS = 0x0686
 
 
@@ -55,10 +59,6 @@ class UnimplementedAptMessageId(int, Enum):
     """
 
     # TODO (see docstring)
-    MGMSG_MOT_MOVE_JOG = 0x046A
-    MGMSG_MOT_MOVE_STOP = 0x0465
-    MGMSG_MOT_MOVE_STOPPED = 0x0466
-
     MGMSG_MOT_SET_EEPROMPARAMS = 0x04B9
 
 
@@ -132,6 +132,22 @@ class EnableState(int, Enum):
         if toggle:
             return cls.CHANNEL_ENABLED
         return cls.CHANNEL_DISABLED
+
+
+@enum.unique
+class StopMode(int, Enum):
+    """Used in MSMSG_MOT_MOVE_STOP."""
+
+    IMMEDIATE_STOP = 0x01
+    CONTROLLED_STOP = 0x02
+
+
+@enum.unique
+class JogDirection(int, Enum):
+    """Used in MSMSG_MOT_MOVE_JOG."""
+
+    JOG_FORWARD = 0x01
+    JOG_BACKWARD = 0x02
 
 
 @enum.unique
@@ -862,6 +878,86 @@ class AptMessage_MGMSG_POL_REQ_PARAMS(AptMessageHeaderOnlyNoParams):
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_POL_SET_PARAMS(AptMessageWithDataPolParams):
     message_id = AptMessageId.MGMSG_POL_SET_PARAMS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_MOVE_STOP(AptMessageHeaderOnly):
+    message_struct: ClassVar[Struct] = Struct(f"<{ATS.WORD}2{ATS.U_BYTE}2{ATS.U_BYTE}")
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_STOP
+    chan_ident: ChanIdent
+    stop_mode: StopMode
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_STOP":
+        message_id, chan_ident, stop_mode, destination, source = (
+            cls.message_struct.unpack(raw)
+        )
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw message was {raw!r}"
+            )
+        return AptMessage_MGMSG_MOT_MOVE_STOP(
+            chan_ident=ChanIdent(chan_ident),
+            destination=Address(destination),
+            stop_mode=StopMode(stop_mode),
+            source=Address(source),
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.chan_ident,
+            self.stop_mode,
+            self.destination_serialization,
+            self.source,
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_MOVE_JOG(AptMessageHeaderOnly):
+    message_struct: ClassVar[Struct] = Struct(f"<{ATS.WORD}2{ATS.U_BYTE}2{ATS.U_BYTE}")
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_JOG
+    chan_ident: ChanIdent
+    jog_direction: JogDirection
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_JOG":
+        message_id, chan_ident, jog_direction, destination, source = (
+            cls.message_struct.unpack(raw)
+        )
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw message was {raw!r}"
+            )
+        return AptMessage_MGMSG_MOT_MOVE_JOG(
+            chan_ident=ChanIdent(chan_ident),
+            destination=Address(destination),
+            jog_direction=JogDirection(jog_direction),
+            source=Address(source),
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.chan_ident,
+            self.jog_direction,
+            self.destination_serialization,
+            self.source,
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessageHeaderOnlyChanIdent):
+    """Note that the APT documentation indicates that this should be
+    followed by a full USTATUS data packet.
+
+    MGMSG_MOT_MOVE_COMPLETED is a similar message that is also expected to be
+    followed by a USTATUS packet. For MOVE_COMPLETED, in reality no data packet
+    follows for the MPC320, so further testing is required if this is also true
+    for MOVE_STOPPED.
+    """
+
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_STOPPED
 
 
 @dataclass(frozen=True, kw_only=True)
