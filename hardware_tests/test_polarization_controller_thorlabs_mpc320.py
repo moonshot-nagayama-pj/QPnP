@@ -1,6 +1,7 @@
 import pytest
 from pint import DimensionalityError
 
+from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import ChanIdent
 from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
     PolarizationControllerThorlabsMPC320,
@@ -10,8 +11,8 @@ from pnpq.units import ureg
 
 @pytest.fixture(name="device", scope="module")
 def device_fixture() -> PolarizationControllerThorlabsMPC320:
-    return PolarizationControllerThorlabsMPC320(serial_number="38454784")
-    # return PolarizationControllerThorlabsMPC320(serial_number="38444954")
+    connection = AptConnection(serial_number="38454784")
+    return PolarizationControllerThorlabsMPC320(connection=connection)
 
 
 # def test_check_status(device: PolarizationControllerThorlabsMPC320) -> None:
