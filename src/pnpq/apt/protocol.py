@@ -949,13 +949,8 @@ class AptMessage_MGMSG_MOT_MOVE_JOG(AptMessageHeaderOnly):
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessageHeaderOnlyChanIdent):
     """Note that the APT documentation indicates that this should be
-    followed by a full USTATUS data packet.
-
-    MGMSG_MOT_MOVE_COMPLETED is a similar message that is also expected to be
-    followed by a USTATUS packet. For MOVE_COMPLETED, in reality no data packet
-    follows for the MPC320, so further testing is required if this is also true
-    for MOVE_STOPPED.
-    """
+    followed by a full USTATUS data packet. In reality, for the
+    MPC320, no data packet follows."""
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_STOPPED
 
