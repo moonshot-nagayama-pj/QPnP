@@ -523,7 +523,7 @@ def test_AptMessage_MGMSG_MOT_MOVE_JOG_to_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_MOVE_JOG(
         chan_ident=ChanIdent.CHANNEL_1,
         destination=Address.GENERIC_USB,
-        jog_direction=JogDirection.JOG_FORWARD,
+        jog_direction=JogDirection.FORWARD,
         source=Address.HOST_CONTROLLER,
     )
     assert msg.to_bytes() == b"\x6A\x04\x01\x01\x50\x01"
@@ -542,7 +542,7 @@ def test_AptMessage_MGMSG_MOT_MOVE_STOP_to_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_MOVE_STOP(
         chan_ident=ChanIdent.CHANNEL_1,
         destination=Address.GENERIC_USB,
-        stop_mode=StopMode.IMMEDIATE_STOP,
+        stop_mode=StopMode.IMMEDIATE,
         source=Address.HOST_CONTROLLER,
     )
     assert msg.to_bytes() == b"\x65\x04\x01\x01\x50\x01"
