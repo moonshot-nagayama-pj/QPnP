@@ -138,8 +138,8 @@ class EnableState(int, Enum):
 class StopMode(int, Enum):
     """Used in MSMSG_MOT_MOVE_STOP."""
 
-    IMMEDIATE_STOP = 0x01
-    CONTROLLED_STOP = 0x02
+    IMMEDIATE = 0x01
+    CONTROLLED = 0x02
 
 
 @enum.unique
