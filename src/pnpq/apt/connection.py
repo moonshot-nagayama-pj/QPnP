@@ -236,6 +236,27 @@ class AptConnection:
                 if match_reply is None:
                     with self.tx_connection_lock:
                         self.connection.write(message.to_bytes())
+                        # Some no-reply commands take time to
+                        # complete. Sending other messages while this
+                        # is happening could cause the device's
+                        # internal software to fail until a hard reset
+                        # is peformed.
+                        #
+                        # This behavior has been observed with the
+                        # MGMSG_MOD_SET_CHANENABLESTATE message on the
+                        # MPC320, where rapidly toggling a channel off
+                        # and then on again seems to cause the device
+                        # to stop responding to commands.
+                        #
+                        # Unlike with reply-expected commands, below,
+                        # this also blocks any users of
+                        # send_message_unordered.
+                        #
+                        # The sleep time set here is just a reasonable
+                        # guess based on observation of device
+                        # behavior. It is not based on information
+                        # from the APT specification.
+                        time.sleep(0.2)
                     continue
                 assert reply_queue is not None
                 # TODO We are subscribing to incoming messages just
@@ -246,6 +267,15 @@ class AptConnection:
                 with timeout(10) as check_timeout, self.rx_subscribe() as receive_queue:
                     with self.tx_connection_lock:
                         self.connection.write(message.to_bytes())
+                    # It doesn't seem to cause harm to let the sort of
+                    # messages we typically poll for using
+                    # send_message_unordered (REQ_USTATUSUPDATE,
+                    # ACK_USTATUSUPDATE) continue to be sent while we
+                    # wait for replies to messages, so we release the
+                    # connection lock here. Compare this to no-reply
+                    # messages above, where we block the sending of
+                    # all messages for a short period of time out of
+                    # an abundance of caution.
                     self.tx_ordered_sender_awaiting_reply.set()
                     while check_timeout():
                         message = receive_queue.get(timeout=10)
@@ -259,7 +289,6 @@ class AptConnection:
         bypassing the message queue. This allows us to poll for status
         messages while the main message thread is blocked waiting for
         a reply.
-
         """
         with self.tx_connection_lock:
             self.log.debug(event=Event.TX_MESSAGE_UNORDERED, message=message)
