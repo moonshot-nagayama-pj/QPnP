@@ -146,8 +146,8 @@ class StopMode(int, Enum):
 class JogDirection(int, Enum):
     """Used in MSMSG_MOT_MOVE_JOG."""
 
-    JOG_FORWARD = 0x01
-    JOG_BACKWARD = 0x02
+   FORWARD = 0x01
+   REVERSE = 0x02
 
 
 @enum.unique
