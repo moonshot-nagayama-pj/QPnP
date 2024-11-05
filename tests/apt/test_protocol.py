@@ -14,12 +14,18 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_POSCOUNTER,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_MOVE_JOG,
+    AptMessage_MGMSG_MOT_MOVE_STOP,
+    AptMessage_MGMSG_MOT_MOVE_STOPPED,
+    AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_SET_POSCOUNTER,
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
@@ -28,7 +34,9 @@ from pnpq.apt.protocol import (
     EnableState,
     FirmwareVersion,
     HardwareType,
+    JogDirection,
     Status,
+    StopMode,
 )
 from pnpq.units import ureg
 
@@ -215,6 +223,69 @@ def test_AptMessage_MGMSG_MOD_IDENTIFY_to_bytes() -> None:
         source=Address.HOST_CONTROLLER,
     )
     assert msg.to_bytes() == b"\x23\x02\x01\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_GET_POSCOUNTER_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_POSCOUNTER.from_bytes(
+        bytes.fromhex("1204 0600 A2 01 0100400D0300")
+    )
+
+    assert msg.destination == 0x22
+    assert msg.message_id == 0x0412
+    assert msg.source == 0x01
+    assert msg.chan_ident == 0x01
+    assert msg.position == 200000
+
+
+def test_AptMessage_MGMSG_MOT_GET_POSCOUNTER_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_POSCOUNTER(
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        chan_ident=ChanIdent.CHANNEL_1,
+        position=200000,
+    )
+    assert msg.to_bytes() == bytes.fromhex("1204 0600 A2 01 0100400D0300")
+
+
+def test_AptMessage_MGMSG_MOT_SET_POSCOUNTER_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_POSCOUNTER.from_bytes(
+        bytes.fromhex("1004 0600 A2 01 0100400D0300")
+    )
+
+    # The official documentation's example refers to this as "Channel 2," but this is actually bay 1.
+    assert msg.destination == 0x22
+
+    assert msg.message_id == 0x0410
+    assert msg.source == 0x01
+    assert msg.chan_ident == 0x01
+    assert msg.position == 200000
+
+
+def test_AptMessage_MGMSG_MOT_SET_POSCOUNTER_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_POSCOUNTER(
+        destination=Address.BAY_1,
+        source=Address.HOST_CONTROLLER,
+        chan_ident=ChanIdent.CHANNEL_1,
+        position=200000,
+    )
+    assert msg.to_bytes() == bytes.fromhex("1004 0600 A2 01 0100400D0300")
+
+
+def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_POSCOUNTER.from_bytes(b"\x11\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.message_id == 0x0411
+    assert msg.destination == 0x50
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_POSCOUNTER(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x11\x04\x01\x00\x50\x01"
 
 
 def test_AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE_from_bytes() -> None:
@@ -437,6 +508,61 @@ def test_AptMessage_MGMSG_POL_SET_PARAMS_from_bytes() -> None:
     assert msg.jog_step_1 == 25
     assert msg.jog_step_2 == 25
     assert msg.jog_step_3 == 25
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_JOG_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_JOG.from_bytes(b"\x6A\x04\x01\x02\x01\x50")
+    assert msg.message_id == 0x046A
+    assert msg.chan_ident == 0x01
+    assert msg.jog_direction == 0x02
+    assert msg.destination == 0x01
+    assert msg.source == 0x50
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_JOG_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_JOG(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        jog_direction=JogDirection.FORWARD,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x6A\x04\x01\x01\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_STOP_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOP.from_bytes(b"\x65\x04\x01\x01\x50\x01")
+    assert msg.message_id == 0x0465
+    assert msg.chan_ident == 0x01
+    assert msg.stop_mode == 0x01
+    assert msg.destination == 0x50
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_STOP_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOP(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        stop_mode=StopMode.IMMEDIATE,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x65\x04\x01\x01\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED.from_bytes(bytes.fromhex("6604 0100 01 22"))
+    assert msg.destination == 0x01
+    assert msg.message_id == 0x0466
+    assert msg.source == 0x22
+    assert msg.chan_ident == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_MOVE_STOPPED_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_STOPPED(
+        destination=Address.HOST_CONTROLLER,
+        source=Address.BAY_1,
+        chan_ident=ChanIdent.CHANNEL_1,
+    )
+    assert msg.to_bytes() == bytes.fromhex("6604 0100 01 22")
 
 
 def test_AptMessage_MGMSG_RESTOREFACTORYSETTINGS_from_bytes() -> None:

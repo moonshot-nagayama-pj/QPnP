@@ -83,10 +83,11 @@ class PolarizationControllerThorlabsMPC320:
                     )
                 )
                 # If we are currently waiting for a reply to a message
-                # we sent, poll every 0.2 seconds to ensure quick
-                # response to state changes. If we are not waiting for
-                # a reply, poll at least once every second to reduce
-                # the amount of noise in logs.
+                # we sent, poll every 0.2 seconds to ensure a
+                # relatively quick response to state changes that we
+                # observe using status update messages. If we are not
+                # waiting for a reply, poll at least once every second
+                # to reduce the amount of noise in logs.
                 #
                 # The tx_ordered_sender thread can request a faster
                 # update by setting the
@@ -97,9 +98,9 @@ class PolarizationControllerThorlabsMPC320:
                     # The documentation for
                     # MGMSG_MOT_ACK_USTATUSUPDATE suggests that it
                     # should be sent at least once a second. This will
-                    # probably send slightly _less_ than once a
-                    # second, so, if we start having issues, we should
-                    # decrease this interval.
+                    # probably send slightly less frequently than once
+                    # a second, so, if we start having issues, we
+                    # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(1)
 
     def home(self, chan_ident: ChanIdent) -> None:
