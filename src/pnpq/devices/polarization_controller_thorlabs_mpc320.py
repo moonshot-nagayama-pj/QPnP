@@ -13,6 +13,7 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
@@ -20,7 +21,9 @@ from ..apt.protocol import (
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
+    AptMessage_MGMSG_MOT_MOVE_JOG,
     ChanIdent,
+    JogDirection,
     EnableState,
 )
 from ..units import ureg
@@ -138,6 +141,37 @@ class PolarizationControllerThorlabsMPC320:
                 source=Address.HOST_CONTROLLER,
             )
         )
+
+    def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
+        self.set_channel_enabled(chan_ident, True)
+        self.log.debug("Sending jog command...")
+        start_time = time.perf_counter()
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_JOG(
+                chan_ident=chan_ident,
+                jog_direction=jog_direction,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED)
+                and message.chan_ident == chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        elapsed_time = time.perf_counter() - start_time
+        self.log.debug("jog command finished", elapsed_time=elapsed_time)
+        # time.sleep(1)
+        self.set_channel_enabled(chan_ident, False)
+
+        # msg = AptMessage_MGMSG_MOT_MOVE_JOG.from_bytes(b"\x6A\x04\x01\x02\x01\x50")
+        # assert msg.message_id == 0x046A
+        # assert msg.chan_ident == 0x01
+        # assert msg.jog_direction == 0x02
+        # assert msg.destination == 0x01
+        # assert msg.source == 0x50
+        # pass        
 
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
         # Convert distance to mpc320 steps and check for errors
