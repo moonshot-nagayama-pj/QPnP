@@ -62,8 +62,6 @@ class PolarizationControllerThorlabsMPC320:
         )
         self.tx_poller_thread.start()
 
-        self.refresh_params()
-
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
         with self.tx_poller_thread_lock:
@@ -162,7 +160,7 @@ class PolarizationControllerThorlabsMPC320:
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
         self.set_channel_enabled(chan_ident, False)
 
-    def refresh_params(self) -> PolarizationControllerParams:
+    def get_params(self) -> PolarizationControllerParams:
         params = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_POL_REQ_PARAMS(
                 destination=Address.GENERIC_USB,
@@ -210,7 +208,7 @@ class PolarizationControllerThorlabsMPC320:
         jog_step_3: None | int = None,
     ) -> None:
         # First load existing params
-        params = self.refresh_params()
+        params = self.get_params()
         # Replace params that need to be changed
         if velocity is not None:
             params["velocity"] = velocity
@@ -234,4 +232,3 @@ class PolarizationControllerThorlabsMPC320:
                 jog_step_3=params["jog_step_3"],
             )
         )
-        time.sleep(1)

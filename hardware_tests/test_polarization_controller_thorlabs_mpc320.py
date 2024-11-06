@@ -84,3 +84,29 @@ def test_invalid_angle_inputs(device: PolarizationControllerThorlabsMPC320) -> N
 
     with pytest.raises(DimensionalityError):
         device.move_absolute(ChanIdent.CHANNEL_1, 1 * ureg.meter)
+
+
+def test_set_params(device: PolarizationControllerThorlabsMPC320) -> None:
+    device.identify(ChanIdent.CHANNEL_1)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+    # Set a custom home position
+    params = device.get_params()
+    params["home_position"] = 100 * ureg.degree
+    device.set_params(**params)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+    # Reset the home position
+    params = device.get_params()
+    params["home_position"] = 0 * ureg.degree
+    device.set_params(**params)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
