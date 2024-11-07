@@ -25,6 +25,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_STOPPED,
     AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_SET_EEPROMPARAMS,
     AptMessage_MGMSG_MOT_SET_POSCOUNTER,
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
@@ -579,3 +580,24 @@ def test_AptMessage_MGMSG_RESTOREFACTORYSETTINGS_to_bytes() -> None:
         destination=Address.GENERIC_USB, source=Address.HOST_CONTROLLER
     )
     assert msg.to_bytes() == b"\x86\x06\x00\x00\x50\x01"
+
+
+def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_EEPROMPARAMS.from_bytes(
+        bytes.fromhex("B904 0400 D0 01 0100 B604")
+    )
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x04B9
+    assert msg.source == 0x01
+    assert msg.chan_ident == 0x01
+    assert msg.specified_msg_id == 0x04B6
+
+
+def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+        chan_ident=ChanIdent.CHANNEL_1,
+        specified_msg_id=0x04B6,
+    )
+    assert msg.to_bytes() == bytes.fromhex("B904 0400 D0 01 0100 B604")
