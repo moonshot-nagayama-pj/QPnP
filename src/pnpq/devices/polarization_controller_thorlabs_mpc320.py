@@ -1,7 +1,7 @@
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import structlog
 from pint import Quantity
@@ -213,7 +213,7 @@ class PolarizationControllerThorlabsMPC320:
         if velocity is not None:
             params["velocity"] = velocity
         if home_position is not None:
-            params["home_position"] = home_position
+            params["home_position"] = cast(Quantity, home_position.to("mpc320_step"))
         if jog_step_1 is not None:
             params["jog_step_1"] = jog_step_1
         if jog_step_2 is not None:
