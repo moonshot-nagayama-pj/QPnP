@@ -226,7 +226,7 @@ class PolarizationControllerThorlabsMPC320:
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
                 velocity=params["velocity"],
-                home_position=params["home_position"].magnitude,
+                home_position=round(params["home_position"].magnitude),
                 jog_step_1=params["jog_step_1"],
                 jog_step_2=params["jog_step_2"],
                 jog_step_3=params["jog_step_3"],
