@@ -80,7 +80,7 @@ def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
     jog_step_1 = 50
     jog_count_1 = 5
 
-    device.set_params(jog_step_1=jog_step_1)
+    # device.set_params(home_position=0 * ureg.degree, jog_step_1=jog_step_1, jog_step_2=jog_step_1, jog_step_3=jog_step_1)
 
     device.home(ChanIdent.CHANNEL_1)
     device.home(ChanIdent.CHANNEL_2)
@@ -88,11 +88,18 @@ def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
 
     for _ in range(jog_count_1):
         device.jog(ChanIdent.CHANNEL_1, JogDirection.FORWARD)
-
+        device.jog(ChanIdent.CHANNEL_2, JogDirection.FORWARD)
+        device.jog(ChanIdent.CHANNEL_3, JogDirection.FORWARD)
     # Validate that we jogged to the expected position.
     # If we are at the correct position, this move_absolute command should not cause the device to move.
     device.move_absolute(
         ChanIdent.CHANNEL_1, jog_count_1 * jog_step_1 * ureg.mpc320_step
+    )
+    device.move_absolute(
+        ChanIdent.CHANNEL_2, jog_count_1 * jog_step_1 * ureg.mpc320_step
+    )
+    device.move_absolute(
+        ChanIdent.CHANNEL_3, jog_count_1 * jog_step_1 * ureg.mpc320_step
     )
 
 
