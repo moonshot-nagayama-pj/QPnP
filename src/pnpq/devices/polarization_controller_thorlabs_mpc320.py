@@ -13,18 +13,18 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
-    AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
-    AptMessage_MGMSG_MOT_MOVE_JOG,
     ChanIdent,
-    JogDirection,
     EnableState,
+    JogDirection,
 )
 from ..units import ureg
 
@@ -143,6 +143,12 @@ class PolarizationControllerThorlabsMPC320:
         )
 
     def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
+        """
+        Jogs the device forward or backwards in small steps.
+
+        The specific amount of steps per jog can be set via the PolarizationcontrollerThorlabsMPC320.set_params() function.
+        """
+
         self.set_channel_enabled(chan_ident, True)
         self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_JOG(
@@ -159,7 +165,6 @@ class PolarizationControllerThorlabsMPC320:
             ),
         )
         self.set_channel_enabled(chan_ident, False)
-
 
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
         # Convert distance to mpc320 steps and check for errors

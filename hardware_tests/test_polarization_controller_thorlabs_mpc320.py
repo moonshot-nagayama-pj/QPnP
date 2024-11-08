@@ -7,7 +7,7 @@ from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
     PolarizationControllerThorlabsMPC320,
 )
 from pnpq.units import ureg
-import time
+
 
 @pytest.fixture(name="device", scope="module")
 def device_fixture() -> PolarizationControllerThorlabsMPC320:
@@ -58,30 +58,24 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     # device.move_absolute(ChanIdent.CHANNEL_2, 0 * ureg.degree)
     # device.move_absolute(ChanIdent.CHANNEL_3, 0 * ureg.degree)
 
+
 def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
 
-    device.set_params(jog_step_1=50, jog_step_2=25, jog_step_3=25)
+    jog_step_1 = 50
+    jog_count_1 = 5
+
+    device.set_params(jog_step_1=jog_step_1, jog_step_2=25, jog_step_3=25)
 
     device.home(ChanIdent.CHANNEL_1)
     device.home(ChanIdent.CHANNEL_2)
     device.home(ChanIdent.CHANNEL_3)
 
-
-    for i in range(5):
-        device.jog(ChanIdent.CHANNEL_1, JogDirection.JOG_FORWARD)
-    device.move_absolute(ChanIdent.CHANNEL_1, 5*50 * ureg.mpc320_step)
-        # time.sleep(1)
-        # device.jog(ChanIdent.CHANNEL_1, JogDirection.JOG_BACKWARD)
-
-        # device.jog(ChanIdent.CHANNEL_2, JogDirection.JOG_BACKWARD)
-        # device.jog(ChanIdent.CHANNEL_2, JogDirection.JOG_BACKWARD)
-        # device.jog(ChanIdent.CHANNEL_3, JogDirection.JOG_BACKWARD)
-        # device.jog(ChanIdent.CHANNEL_3, JogDirection.JOG_BACKWARD)
-
-
-    # device.jog(ChanIdent.CHANNEL_2, JogDirection.JOG_FORWARD)
-    # device.jog(ChanIdent.CHANNEL_1, JogDirection.JOG_FORWARD)
-
+    # Compare jog distance versus absolute distance
+    for _ in range(jog_count_1):
+        device.jog(ChanIdent.CHANNEL_1, JogDirection.FORWARD)
+    device.move_absolute(
+        ChanIdent.CHANNEL_1, jog_count_1 * jog_step_1 * ureg.mpc320_step
+    )
 
 
 def test_invalid_angle_inputs(device: PolarizationControllerThorlabsMPC320) -> None:
