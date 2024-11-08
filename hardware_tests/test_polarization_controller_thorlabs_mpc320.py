@@ -30,7 +30,7 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     device.move_absolute(ChanIdent.CHANNEL_2, 160 * ureg.degree)
     device.move_absolute(ChanIdent.CHANNEL_3, 160 * ureg.degree)
 
-        # device.move_absolute(ChanIdent.CHANNEL_2, 30 * ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_2, 30 * ureg.degree)
     # device.move_absolute(ChanIdent.CHANNEL_1, 90 * ureg.degree)
     # device.move_absolute(ChanIdent.CHANNEL_3, 90 * ureg.degree)
 
