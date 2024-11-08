@@ -31,6 +31,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
     AptMessage_MGMSG_RESTOREFACTORYSETTINGS,
+    AptMessageId,
     ChanIdent,
     EnableState,
     FirmwareVersion,
@@ -590,14 +591,17 @@ def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_from_bytes() -> None:
     assert msg.message_id == 0x04B9
     assert msg.source == 0x01
     assert msg.chan_ident == 0x01
-    assert msg.specified_msg_id == 0x04B6
+    assert msg.message_id_to_save == 0x04B6
 
 
 def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_to_bytes() -> None:
+
+    # We have not implemented any messages that are to be saved with SET_EEPROMPARAMS,
+    # so MGMSG_HW_GET_INFO will temporarily be used as the target for saving in this test.
     msg = AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(
         destination=Address.GENERIC_USB,
         source=Address.HOST_CONTROLLER,
         chan_ident=ChanIdent.CHANNEL_1,
-        specified_msg_id=0x04B6,
+        message_id_to_save=AptMessageId.MGMSG_HW_GET_INFO,
     )
-    assert msg.to_bytes() == bytes.fromhex("B904 0400 D0 01 0100 B604")
+    assert msg.to_bytes() == bytes.fromhex("B904 0400 D0 01 0100 0600")

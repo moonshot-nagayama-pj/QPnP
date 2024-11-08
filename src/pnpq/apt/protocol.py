@@ -961,7 +961,7 @@ class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
     )
 
     chan_ident: ChanIdent
-    specified_msg_id: int
+    message_id_to_save: AptMessageId
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_SET_EEPROMPARAMS":
@@ -971,7 +971,7 @@ class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
             destination,
             source,
             chan_ident,
-            specified_msg_id,
+            message_id_to_save,
         ) = cls.message_struct.unpack(raw)
 
         if message_id != cls.message_id:
@@ -991,7 +991,7 @@ class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
             destination=Address(destination & 0x7F),
             source=Address(source),
             chan_ident=ChanIdent(chan_ident),
-            specified_msg_id=specified_msg_id,
+            message_id_to_save=message_id_to_save,
         )
 
     def to_bytes(self) -> bytes:
@@ -1001,5 +1001,5 @@ class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
             self.destination_serialization,
             self.source,
             self.chan_ident,
-            self.specified_msg_id,
+            self.message_id_to_save,
         )
