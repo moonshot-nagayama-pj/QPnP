@@ -136,8 +136,10 @@ class PolarizationControllerThorlabsMPC320:
     def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
         """
         Jogs the device forward or backwards in small steps.
+        Experimentally, jog steps of 50 or greater seem to work the best.
 
-        The specific amount of steps per jog can be set via the PolarizationcontrollerThorlabsMPC320.set_params() function.
+        The specific amount of steps per jog can be set via the
+        PolarizationcontrollerThorlabsMPC320.set_params() function.
         """
 
         self.set_channel_enabled(chan_ident, True)
@@ -235,6 +237,7 @@ class PolarizationControllerThorlabsMPC320:
         jog_step_3: None | int = None,
     ) -> None:
         # First load existing params
+
         params = self.get_params()
         # Replace params that need to be changed
         if velocity is not None:
