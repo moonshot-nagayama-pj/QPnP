@@ -144,8 +144,6 @@ class PolarizationControllerThorlabsMPC320:
 
     def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
         self.set_channel_enabled(chan_ident, True)
-        self.log.debug("Sending jog command...")
-        start_time = time.perf_counter()
         self.connection.send_message_expect_reply(
             AptMessage_MGMSG_MOT_MOVE_JOG(
                 chan_ident=chan_ident,
@@ -160,18 +158,8 @@ class PolarizationControllerThorlabsMPC320:
                 and message.source == Address.GENERIC_USB
             ),
         )
-        elapsed_time = time.perf_counter() - start_time
-        self.log.debug("jog command finished", elapsed_time=elapsed_time)
-        # time.sleep(1)
         self.set_channel_enabled(chan_ident, False)
 
-        # msg = AptMessage_MGMSG_MOT_MOVE_JOG.from_bytes(b"\x6A\x04\x01\x02\x01\x50")
-        # assert msg.message_id == 0x046A
-        # assert msg.chan_ident == 0x01
-        # assert msg.jog_direction == 0x02
-        # assert msg.destination == 0x01
-        # assert msg.source == 0x50
-        # pass        
 
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
         # Convert distance to mpc320 steps and check for errors

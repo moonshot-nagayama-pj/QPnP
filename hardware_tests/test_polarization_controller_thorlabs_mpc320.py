@@ -65,31 +65,23 @@ def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
     device.home(ChanIdent.CHANNEL_1)
     device.home(ChanIdent.CHANNEL_2)
     device.home(ChanIdent.CHANNEL_3)
-    
-    # device.move_absolute(ChanIdent.CHANNEL_1, 45 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_2, 45 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_3, 45 * ureg.degree)
 
-    # device.home(ChanIdent.CHANNEL_1)
-    # device.home(ChanIdent.CHANNEL_2)
-    # device.home(ChanIdent.CHANNEL_3)
-    
 
     for i in range(5):
         device.jog(ChanIdent.CHANNEL_1, JogDirection.JOG_FORWARD)
     device.move_absolute(ChanIdent.CHANNEL_1, 5*50 * ureg.mpc320_step)
         # time.sleep(1)
         # device.jog(ChanIdent.CHANNEL_1, JogDirection.JOG_BACKWARD)
-        
+
         # device.jog(ChanIdent.CHANNEL_2, JogDirection.JOG_BACKWARD)
         # device.jog(ChanIdent.CHANNEL_2, JogDirection.JOG_BACKWARD)
         # device.jog(ChanIdent.CHANNEL_3, JogDirection.JOG_BACKWARD)
         # device.jog(ChanIdent.CHANNEL_3, JogDirection.JOG_BACKWARD)
-    
+
 
     # device.jog(ChanIdent.CHANNEL_2, JogDirection.JOG_FORWARD)
     # device.jog(ChanIdent.CHANNEL_1, JogDirection.JOG_FORWARD)
-    
+
 
 
 def test_invalid_angle_inputs(device: PolarizationControllerThorlabsMPC320) -> None:
