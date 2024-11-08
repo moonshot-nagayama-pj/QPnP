@@ -991,7 +991,7 @@ class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
             destination=Address(destination & 0x7F),
             source=Address(source),
             chan_ident=ChanIdent(chan_ident),
-            message_id_to_save=message_id_to_save,
+            message_id_to_save=AptMessageId(message_id_to_save),
         )
 
     def to_bytes(self) -> bytes:
