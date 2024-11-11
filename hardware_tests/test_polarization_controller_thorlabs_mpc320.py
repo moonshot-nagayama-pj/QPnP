@@ -2,7 +2,7 @@ import pytest
 from pint import DimensionalityError
 
 from pnpq.apt.connection import AptConnection
-from pnpq.apt.protocol import ChanIdent
+from pnpq.apt.protocol import ChanIdent, JogDirection
 from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
     PolarizationControllerThorlabsMPC320,
 )
@@ -75,6 +75,44 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     # device.move_absolute(ChanIdent.CHANNEL_3, 0 * ureg.degree)
 
 
+def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
+
+    params = device.get_params()
+    old_jog_step_1 = params["jog_step_1"]
+    old_jog_step_2 = params["jog_step_2"]
+    old_jog_step_3 = params["jog_step_3"]
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+    jog_step = 50
+    jog_count = 5
+
+    device.set_params(jog_step_1=jog_step, jog_step_2=jog_step, jog_step_3=jog_step)
+
+    # Home should be set to 0 for this test to work
+    # device.set_params(home_position=0*ureg.degree)
+
+    try:
+        for _ in range(jog_count):
+            device.jog(ChanIdent.CHANNEL_1, JogDirection.FORWARD)
+            device.jog(ChanIdent.CHANNEL_2, JogDirection.FORWARD)
+            device.jog(ChanIdent.CHANNEL_3, JogDirection.FORWARD)
+    finally:
+        device.set_params(
+            jog_step_1=old_jog_step_1,
+            jog_step_2=old_jog_step_2,
+            jog_step_3=old_jog_step_3,
+        )
+
+    # Validate that we jogged to the expected position.
+    # If we are at the correct position, this move_absolute command should not cause the device to move.
+    device.move_absolute(ChanIdent.CHANNEL_1, jog_count * jog_step * ureg.mpc320_step)
+    device.move_absolute(ChanIdent.CHANNEL_2, jog_count * jog_step * ureg.mpc320_step)
+    device.move_absolute(ChanIdent.CHANNEL_3, jog_count * jog_step * ureg.mpc320_step)
+
+
 def test_invalid_angle_inputs(device: PolarizationControllerThorlabsMPC320) -> None:
     device.identify(ChanIdent.CHANNEL_1)
 
@@ -84,3 +122,29 @@ def test_invalid_angle_inputs(device: PolarizationControllerThorlabsMPC320) -> N
 
     with pytest.raises(DimensionalityError):
         device.move_absolute(ChanIdent.CHANNEL_1, 1 * ureg.meter)
+
+
+def test_set_params(device: PolarizationControllerThorlabsMPC320) -> None:
+    device.identify(ChanIdent.CHANNEL_1)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+    # Set a custom home position
+    params = device.get_params()
+    params["home_position"] = 100 * ureg.degree
+    device.set_params(**params)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+    # Reset the home position
+    params = device.get_params()
+    params["home_position"] = 0 * ureg.degree
+    device.set_params(**params)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)

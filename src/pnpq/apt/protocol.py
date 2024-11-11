@@ -1,4 +1,4 @@
-# pylint: disable=C0103
+# pylint: disable=C0103, C0302
 
 import dataclasses
 import enum
@@ -51,14 +51,6 @@ class AptMessageId(int, Enum):
 
     MGMSG_RESTOREFACTORYSETTINGS = 0x0686
 
-
-@enum.unique
-class UnimplementedAptMessageId(int, Enum):
-    """Space to temporarily store message IDs that we know we need for
-    our devices but have not yet implemented.
-    """
-
-    # TODO (see docstring)
     MGMSG_MOT_SET_EEPROMPARAMS = 0x04B9
 
 
@@ -958,3 +950,56 @@ class AptMessage_MGMSG_MOT_MOVE_STOPPED(AptMessageHeaderOnlyChanIdent):
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_RESTOREFACTORYSETTINGS(AptMessageHeaderOnlyNoParams):
     message_id = AptMessageId.MGMSG_RESTOREFACTORYSETTINGS
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(AptMessageWithData):
+    data_length: ClassVar[int] = 4
+    message_id = AptMessageId.MGMSG_MOT_SET_EEPROMPARAMS
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}{ATS.WORD}{ATS.WORD}"
+    )
+
+    chan_ident: ChanIdent
+    message_id_to_save: AptMessageId
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_SET_EEPROMPARAMS":
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident,
+            message_id_to_save,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            chan_ident=ChanIdent(chan_ident),
+            message_id_to_save=AptMessageId(message_id_to_save),
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident,
+            self.message_id_to_save,
+        )

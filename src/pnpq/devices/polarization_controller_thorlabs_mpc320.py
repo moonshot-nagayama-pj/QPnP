@@ -1,7 +1,7 @@
-import dataclasses
 import threading
 import time
 from dataclasses import dataclass, field
+from typing import TypedDict, cast
 
 import structlog
 from pint import Quantity
@@ -14,25 +14,27 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
+    AptMessage_MGMSG_MOT_MOVE_JOG,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
     ChanIdent,
     EnableState,
+    JogDirection,
 )
 from ..units import ureg
 
 
-@dataclass(kw_only=True)
-class PolarizationControllerParams:
-    velocity: int = 0
-    home_position: Quantity = 0 * ureg.degree
-    jog_step_1: int = 0
-    jog_step_2: int = 0
-    jog_step_3: int = 0
+class PolarizationControllerParams(TypedDict):
+    velocity: int
+    home_position: Quantity
+    jog_step_1: int
+    jog_step_2: int
+    jog_step_3: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -54,12 +56,6 @@ class PolarizationControllerThorlabsMPC320:
         ]
     )
 
-    # Stored in a non-frozen dataclass so that we can refresh them as
-    # the configuration changes
-    params: PolarizationControllerParams = field(
-        default_factory=PolarizationControllerParams
-    )
-
     def __post_init__(self) -> None:
         # Start polling thread
         object.__setattr__(
@@ -68,8 +64,6 @@ class PolarizationControllerThorlabsMPC320:
             threading.Thread(target=self.tx_poll, daemon=True),
         )
         self.tx_poller_thread.start()
-
-        self.refresh_params()
 
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
@@ -139,6 +133,32 @@ class PolarizationControllerThorlabsMPC320:
             )
         )
 
+    def jog(self, chan_ident: ChanIdent, jog_direction: JogDirection) -> None:
+        """
+        Jogs the device forward or backwards in small steps.
+        Experimentally, jog steps of 50 or greater seem to work the best.
+
+        The specific amount of steps per jog can be set via the
+        PolarizationcontrollerThorlabsMPC320.set_params() function.
+        """
+
+        self.set_channel_enabled(chan_ident, True)
+        self.connection.send_message_expect_reply(
+            AptMessage_MGMSG_MOT_MOVE_JOG(
+                chan_ident=chan_ident,
+                jog_direction=jog_direction,
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            ),
+            lambda message: (
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED)
+                and message.chan_ident == chan_ident
+                and message.destination == Address.HOST_CONTROLLER
+                and message.source == Address.GENERIC_USB
+            ),
+        )
+        self.set_channel_enabled(chan_ident, False)
+
     def move_absolute(self, chan_ident: ChanIdent, position: Quantity) -> None:
         # Convert distance to mpc320 steps and check for errors
         absolute_distance = round(position.to("mpc320_step").magnitude)
@@ -169,7 +189,7 @@ class PolarizationControllerThorlabsMPC320:
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
         self.set_channel_enabled(chan_ident, False)
 
-    def refresh_params(self) -> None:
+    def get_params(self) -> PolarizationControllerParams:
         params = self.connection.send_message_expect_reply(
             AptMessage_MGMSG_POL_REQ_PARAMS(
                 destination=Address.GENERIC_USB,
@@ -178,11 +198,14 @@ class PolarizationControllerThorlabsMPC320:
             lambda message: (isinstance(message, AptMessage_MGMSG_POL_GET_PARAMS)),
         )
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
-        self.params.velocity = params.velocity
-        self.params.home_position = params.home_position * ureg.mpc320_step
-        self.params.jog_step_1 = params.jog_step_1
-        self.params.jog_step_2 = params.jog_step_2
-        self.params.jog_step_3 = params.jog_step_3
+        result: PolarizationControllerParams = {
+            "velocity": params.velocity,
+            "home_position": params.home_position * ureg.mpc320_step,
+            "jog_step_1": params.jog_step_1,
+            "jog_step_2": params.jog_step_2,
+            "jog_step_3": params.jog_step_3,
+        }
+        return result
 
     def set_channel_enabled(self, chan_ident: ChanIdent, enabled: bool) -> None:
         if enabled:
@@ -213,28 +236,29 @@ class PolarizationControllerThorlabsMPC320:
         jog_step_2: None | int = None,
         jog_step_3: None | int = None,
     ) -> None:
-        replaced_params: dict[str, int | Quantity] = {}
+        # First load existing params
+
+        params = self.get_params()
+        # Replace params that need to be changed
         if velocity is not None:
-            replaced_params["velocity"] = velocity
+            params["velocity"] = velocity
         if home_position is not None:
-            replaced_params["home_position"] = home_position
+            params["home_position"] = cast(Quantity, home_position.to("mpc320_step"))
         if jog_step_1 is not None:
-            replaced_params["jog_step_1"] = jog_step_1
+            params["jog_step_1"] = jog_step_1
         if jog_step_2 is not None:
-            replaced_params["jog_step_2"] = jog_step_2
+            params["jog_step_2"] = jog_step_2
         if jog_step_3 is not None:
-            replaced_params["jog_step_3"] = jog_step_3
-        new_params = dataclasses.replace(self.params, **replaced_params)  # type: ignore
+            params["jog_step_3"] = jog_step_3
+        # Send params to device
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_POL_SET_PARAMS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
-                velocity=new_params.velocity,
-                home_position=new_params.home_position.magnitude,
-                jog_step_1=new_params.jog_step_1,
-                jog_step_2=new_params.jog_step_2,
-                jog_step_3=new_params.jog_step_3,
+                velocity=params["velocity"],
+                home_position=round(params["home_position"].magnitude),
+                jog_step_1=params["jog_step_1"],
+                jog_step_2=params["jog_step_2"],
+                jog_step_3=params["jog_step_3"],
             )
         )
-        time.sleep(1)
-        self.refresh_params()

@@ -25,11 +25,13 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_STOPPED,
     AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_SET_EEPROMPARAMS,
     AptMessage_MGMSG_MOT_SET_POSCOUNTER,
     AptMessage_MGMSG_POL_GET_PARAMS,
     AptMessage_MGMSG_POL_REQ_PARAMS,
     AptMessage_MGMSG_POL_SET_PARAMS,
     AptMessage_MGMSG_RESTOREFACTORYSETTINGS,
+    AptMessageId,
     ChanIdent,
     EnableState,
     FirmwareVersion,
@@ -579,3 +581,30 @@ def test_AptMessage_MGMSG_RESTOREFACTORYSETTINGS_to_bytes() -> None:
         destination=Address.GENERIC_USB, source=Address.HOST_CONTROLLER
     )
     assert msg.to_bytes() == b"\x86\x06\x00\x00\x50\x01"
+
+
+# We have not implemented any messages that are to be saved with SET_EEPROMPARAMS,
+# so MGMSG_HW_GET_INFO will temporarily be used as the target for saving in this
+# AptMessage_MGMSG_MOT_SET_EEPROMPARAMS unit test.
+
+
+def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_SET_EEPROMPARAMS.from_bytes(
+        bytes.fromhex("B904 0400 D0 01 0100 0600")
+    )
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x04B9
+    assert msg.source == 0x01
+    assert msg.chan_ident == 0x01
+    assert msg.message_id_to_save == 0x0006
+
+
+def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_to_bytes() -> None:
+
+    msg = AptMessage_MGMSG_MOT_SET_EEPROMPARAMS(
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+        chan_ident=ChanIdent.CHANNEL_1,
+        message_id_to_save=AptMessageId.MGMSG_HW_GET_INFO,
+    )
+    assert msg.to_bytes() == bytes.fromhex("B904 0400 D0 01 0100 0600")
