@@ -68,6 +68,9 @@ shfmt --diff --simplify .
 stdmsg "Running rye lint..."
 rye lint
 
+stdmsg "Building documentation..."
+sphinx-build -M html sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
+
 stdmsg "Running unit tests..."
 coverage run -m pytest tests
 coverage report -m

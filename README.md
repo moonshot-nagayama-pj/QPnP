@@ -4,7 +4,7 @@ PnPQ is a python library package for controlling optical devices in quantum netw
 
 ## Prerequisites
 
-- (rye)[https://rye.astral.sh/].
+- [rye](https://rye.astral.sh/).
 - shellcheck
 - shfmt
 

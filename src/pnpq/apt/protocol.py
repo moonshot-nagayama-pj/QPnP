@@ -742,6 +742,24 @@ class AptMessage_MGMSG_MOD_REQ_CHANENABLESTATE(AptMessageHeaderOnlyChanIdent):
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(AptMessageHeaderOnlyChanEnableState):
+    """Sets the state of the motor channels to enabled or
+    disabled. The official APT specification and the message itself
+    are designed in a way that suggests this operates on one channel
+    ID at a time; however, in reality, on the MPC320 motorized
+    polarization controller, the ``chan_ident`` field is actually a
+    bitmask.
+
+    In other words, at least on the MPC devices, ``enable_state``
+    should always be set to :py:attr:`EnableState.CHANNEL_ENABLED`,
+    and the presence of a ``1`` or ``0`` in the appropriate position
+    in ``chan_ident`` should be used to indicate if that channel
+    should be enabled or disabled.
+
+    :param chan_ident: A bitmask indicating which channels should be enabled. See the class documentation for more information.
+    :param enable_state: Should always be set to :py:attr:`EnableState.CHANNEL_ENABLED`. See the class documentation for more information.
+
+    """
+
     message_id = AptMessageId.MGMSG_MOD_SET_CHANENABLESTATE
 
 
