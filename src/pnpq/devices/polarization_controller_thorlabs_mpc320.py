@@ -32,9 +32,9 @@ from ..units import ureg
 class PolarizationControllerParams(TypedDict):
     velocity: int
     home_position: Quantity
-    jog_step_1: int
-    jog_step_2: int
-    jog_step_3: int
+    jog_step_1: Quantity
+    jog_step_2: Quantity
+    jog_step_3: Quantity
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -205,9 +205,9 @@ class PolarizationControllerThorlabsMPC320:
         result: PolarizationControllerParams = {
             "velocity": params.velocity,
             "home_position": params.home_position * ureg.mpc320_step,
-            "jog_step_1": params.jog_step_1,
-            "jog_step_2": params.jog_step_2,
-            "jog_step_3": params.jog_step_3,
+            "jog_step_1": params.jog_step_1 * ureg.mpc320_step,
+            "jog_step_2": params.jog_step_2 * ureg.mpc320_step,
+            "jog_step_3": params.jog_step_3 * ureg.mpc320_step,
         }
         return result
 
@@ -236,9 +236,9 @@ class PolarizationControllerThorlabsMPC320:
         self,
         velocity: None | int = None,
         home_position: None | Quantity = None,
-        jog_step_1: None | int = None,
-        jog_step_2: None | int = None,
-        jog_step_3: None | int = None,
+        jog_step_1: None | Quantity = None,
+        jog_step_2: None | Quantity = None,
+        jog_step_3: None | Quantity = None,
     ) -> None:
         # First load existing params
 
@@ -249,11 +249,11 @@ class PolarizationControllerThorlabsMPC320:
         if home_position is not None:
             params["home_position"] = cast(Quantity, home_position.to("mpc320_step"))
         if jog_step_1 is not None:
-            params["jog_step_1"] = jog_step_1
+            params["jog_step_1"] = cast(Quantity, jog_step_1.to("mpc320_step"))
         if jog_step_2 is not None:
-            params["jog_step_2"] = jog_step_2
+            params["jog_step_2"] = cast(Quantity, jog_step_2.to("mpc320_step"))
         if jog_step_3 is not None:
-            params["jog_step_3"] = jog_step_3
+            params["jog_step_3"] = cast(Quantity, jog_step_3.to("mpc320_step"))
         # Send params to device
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_POL_SET_PARAMS(
@@ -261,8 +261,8 @@ class PolarizationControllerThorlabsMPC320:
                 source=Address.HOST_CONTROLLER,
                 velocity=params["velocity"],
                 home_position=round(params["home_position"].magnitude),
-                jog_step_1=params["jog_step_1"],
-                jog_step_2=params["jog_step_2"],
-                jog_step_3=params["jog_step_3"],
+                jog_step_1=round(params["jog_step_1"].magnitude),
+                jog_step_2=round(params["jog_step_2"].magnitude),
+                jog_step_3=round(params["jog_step_3"].magnitude),
             )
         )
