@@ -30,7 +30,7 @@ from ..units import ureg
 
 
 class PolarizationControllerParams(TypedDict):
-    velocity: int
+    velocity: Quantity
     home_position: Quantity
     jog_step_1: Quantity
     jog_step_2: Quantity
@@ -203,7 +203,7 @@ class PolarizationControllerThorlabsMPC320:
         )
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
         result: PolarizationControllerParams = {
-            "velocity": params.velocity,
+            "velocity": params.velocity * ureg.mpc320_velocity,
             "home_position": params.home_position * ureg.mpc320_step,
             "jog_step_1": params.jog_step_1 * ureg.mpc320_step,
             "jog_step_2": params.jog_step_2 * ureg.mpc320_step,
@@ -234,7 +234,7 @@ class PolarizationControllerThorlabsMPC320:
 
     def set_params(
         self,
-        velocity: None | int = None,
+        velocity: None | Quantity = None,
         home_position: None | Quantity = None,
         jog_step_1: None | Quantity = None,
         jog_step_2: None | Quantity = None,
@@ -245,7 +245,7 @@ class PolarizationControllerThorlabsMPC320:
         params = self.get_params()
         # Replace params that need to be changed
         if velocity is not None:
-            params["velocity"] = velocity
+            params["velocity"] = cast(Quantity, velocity.to("mpc320_velocity"))
         if home_position is not None:
             params["home_position"] = cast(Quantity, home_position.to("mpc320_step"))
         if jog_step_1 is not None:
@@ -259,7 +259,7 @@ class PolarizationControllerThorlabsMPC320:
             AptMessage_MGMSG_POL_SET_PARAMS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
-                velocity=params["velocity"],
+                velocity=round(params["velocity"].magnitude),
                 home_position=round(params["home_position"].magnitude),
                 jog_step_1=round(params["jog_step_1"].magnitude),
                 jog_step_2=round(params["jog_step_2"].magnitude),
