@@ -78,9 +78,9 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
 def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
 
     params = device.get_params()
-    old_jog_step_1 = params["jog_step_1"] * ureg.mpc320_step
-    old_jog_step_2 = params["jog_step_2"] * ureg.mpc320_step
-    old_jog_step_3 = params["jog_step_3"] * ureg.mpc320_step
+    old_jog_step_1 = params["jog_step_1"]
+    old_jog_step_2 = params["jog_step_2"]
+    old_jog_step_3 = params["jog_step_3"]
 
     device.home(ChanIdent.CHANNEL_1)
     device.home(ChanIdent.CHANNEL_2)
