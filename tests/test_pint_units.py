@@ -1,4 +1,3 @@
-import pint
 import pytest
 
 from pnpq.units import ureg
