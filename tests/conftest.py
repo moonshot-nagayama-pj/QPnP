@@ -8,7 +8,6 @@ import structlog
 from pnpq.events import Event
 from tests.logs import setup_log
 
-
 setup_log("tests")
 log = structlog.get_logger()
 

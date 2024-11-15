@@ -1,8 +1,8 @@
 import structlog
 
-from ..events import Event
-
 from pnpq.errors import DeviceDisconnectedError
+
+from ..events import Event
 
 
 class Switch:

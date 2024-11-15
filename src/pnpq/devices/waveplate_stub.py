@@ -1,8 +1,6 @@
-import logging
-import structlog
 import time
 
-from ..events import Event
+import structlog
 
 from pnpq.errors import (
     DeviceDisconnectedError,
@@ -11,6 +9,8 @@ from pnpq.errors import (
     WaveplateInvalidMotorChannelError,
     WaveplateInvalidStepsError,
 )
+
+from ..events import Event
 
 
 class WaveplateStub:
