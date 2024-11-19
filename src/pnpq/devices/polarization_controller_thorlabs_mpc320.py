@@ -30,10 +30,15 @@ from ..units import ureg
 
 
 class PolarizationControllerParams(TypedDict):
+    #: Dimensionality must be ([angle] / [time]) or mpc320_velocity
     velocity: Quantity
+    #: Dimensionality must be [angle] or mpc320_step
     home_position: Quantity
+    #: Dimensionality must be [angle] or mpc320_step
     jog_step_1: Quantity
+    #: Dimensionality must be [angle] or mpc320_step
     jog_step_2: Quantity
+    #: Dimensionality must be [angle] or mpc320_step
     jog_step_3: Quantity
 
 

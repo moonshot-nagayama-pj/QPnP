@@ -1,6 +1,8 @@
 import pytest
 
 from pnpq.units import ureg
+from pint import Quantity
+from math import pi
 
 
 @pytest.mark.parametrize(
@@ -36,24 +38,43 @@ def test_angle_to_mpc320_step_conversion(
 
 
 @pytest.mark.parametrize(
-    "deg_per_sec_velocity, mpc320_velocity",
+    "angular_velocity, unit, mpc320_velocity",
     [
-        (200, 50),
-        (300, 75),
+        (200, ureg("degree / second"), 50),
+        (300, ureg("degree / second"), 75),
+        (200 * (pi / 180), ureg("radian / second"), 50),
+        (300 * (pi / 180), ureg("radian / second"), 75),
+        (200 / (170 / 1370), ureg("mpc320_step / second"), 50),
+        (300 / (170 / 1370), ureg("mpc320_step / second"), 75),
     ],
 )
-def test_mpc320_velocity_conversion(
-    deg_per_sec_velocity: float, mpc320_velocity: float
+def test_to_mpc320_velocity_conversion(
+    angular_velocity: float, unit: Quantity, mpc320_velocity: float
 ) -> None:
 
-    # Test that degrees / second quantities accurately convert into mpc320_velocity quantities
-    velocity = deg_per_sec_velocity * ureg("degree / second")
+    # Test that [angle] / second quantities accurately convert into mpc320_velocity quantities
+    velocity = angular_velocity * unit
     proportion = velocity.to("mpc320_velocity")
     assert mpc320_velocity == pytest.approx(proportion.magnitude)
     assert "mpc320_velocity" == proportion.units
 
-    # Test that mpc320_velocity quantities accurately convert back into degrees / second quantities
+
+@pytest.mark.parametrize(
+    "angular_velocity, unit, mpc320_velocity",
+    [
+        (200, ureg("degree / second"), 50),
+        (300, ureg("degree / second"), 75),
+        (200 * (pi / 180), ureg("radian / second"), 50),
+        (300 * (pi / 180), ureg("radian / second"), 75),
+        (200 / (170 / 1370), ureg("mpc320_step / second"), 50),
+        (300 / (170 / 1370), ureg("mpc320_step / second"), 75),
+    ],
+)
+def test_from_mpc320_velocity_conversion(
+    angular_velocity: float, unit: Quantity, mpc320_velocity: float
+) -> None:
+    # Test that mpc320_velocity quantities accurately convert back into [angle] / second quantities
     proportion = mpc320_velocity * ureg.mpc320_velocity
-    velocity = proportion.to("degree / second")
-    assert deg_per_sec_velocity == pytest.approx(velocity.magnitude)
-    assert "degree / second" == velocity.units
+    velocity = proportion.to(unit)
+    assert angular_velocity == pytest.approx(velocity.magnitude)
+    assert unit.units == velocity.units
