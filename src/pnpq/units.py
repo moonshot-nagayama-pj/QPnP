@@ -1,6 +1,4 @@
 import pint
-from pint import Quantity
-from typing import cast
 
 ureg = pint.UnitRegistry()
 
@@ -22,13 +20,15 @@ mpc320_max_velocity = 400 * (ureg.degree / ureg.second)
 context.add_transformation(
     "degree / second",
     "mpc320_velocity",
-    lambda ureg, value, **kwargs: (value / mpc320_max_velocity) * 100, # Convert value to percent
+    lambda ureg, value, **kwargs: (value / mpc320_max_velocity)
+    * 100,  # Convert value to percent
 )
 
 context.add_transformation(
     "mpc320_velocity",
     "degree / second",
-    lambda ureg, value, **kwargs: (value * mpc320_max_velocity) / 100, # Convert value from percent
+    lambda ureg, value, **kwargs: (value * mpc320_max_velocity)
+    / 100,  # Convert value from percent
 )
 
 ureg.add_context(context)

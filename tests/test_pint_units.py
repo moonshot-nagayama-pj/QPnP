@@ -1,8 +1,9 @@
+from math import pi
+
 import pytest
+from pint import Quantity
 
 from pnpq.units import ureg
-from pint import Quantity
-from math import pi
 
 
 @pytest.mark.parametrize(
