@@ -10,9 +10,9 @@ class Event(StrEnum):
     TX_MESSAGE_UNORDERED = auto()
     UNCAUGHT_EXCEPTION = auto()
 
-    # General hardware errors
+    # Common events used by most device types
     DEVICE_CONNECTED = auto()
-    DEVICE_NOT_CONNECTED_ERROR = auto()
+    DEVICE_NOT_CONNECTED = auto()
     DEVICE_IDENTIFY = auto()
 
     # Optical Switch Events

@@ -45,7 +45,7 @@ class WaveplateStub:
 
     def __ensure_port_open(self) -> None:
         if not self.connected:
-            self.log.error(event=Event.DEVICE_NOT_CONNECTED_ERROR)
+            self.log.error(event=Event.DEVICE_NOT_CONNECTED)
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def __ensure_valid_steps(self, steps: int) -> None:
