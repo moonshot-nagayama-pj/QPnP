@@ -22,6 +22,7 @@ def setup_log(log_file_name: str) -> None:
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
     )
 
     # Rotate the log file every 100MB and keep 3 backups
@@ -38,6 +39,7 @@ def setup_log(log_file_name: str) -> None:
             structlog.dev.set_exc_info,
             structlog.processors.dict_tracebacks,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             structlog.processors.JSONRenderer(),
         ]
     )
