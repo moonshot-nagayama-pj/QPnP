@@ -1,5 +1,6 @@
-import logging
 import time
+
+import structlog
 
 from pnpq.errors import (
     DeviceDisconnectedError,
@@ -9,9 +10,13 @@ from pnpq.errors import (
     WaveplateInvalidStepsError,
 )
 
+from ..events import Event
+
 
 class WaveplateStub:
     """Stub Waveplate Device Class"""
+
+    log = structlog.get_logger()
 
     def __init__(self) -> None:
         # Stub Serial Number
@@ -27,9 +32,6 @@ class WaveplateStub:
         # Flag for auto updating device information
         self.auto_update: bool = False
 
-        # Logger for this class
-        self.logger: logging.Logger = logging.getLogger(f"{self}")
-
         # Current Position of the device in steps
         self.current_position: int = 0
 
@@ -43,7 +45,7 @@ class WaveplateStub:
 
     def __ensure_port_open(self) -> None:
         if not self.connected:
-            self.logger.error("Device not connected")
+            self.log.error(event=Event.DEVICE_NOT_CONNECTED)
             raise DeviceDisconnectedError(f"{self} is disconnected")
 
     def __ensure_valid_steps(self, steps: int) -> None:
@@ -70,18 +72,18 @@ class WaveplateStub:
     def connect(self) -> None:
         """Establish connection to the device"""
         self.connected = True
-        self.logger.info("Stub Waveplate Connected")
+        self.log.debug(event=Event.DEVICE_CONNECTED)
 
     def identify(self) -> None:
         """Identify the device by flashing the on-device LED"""
         self.__ensure_port_open()
         # Flashes LED on real device, for stub, we will do nothing
-        self.logger.info("Stub Waveplate Identify")
+        self.log.info(event=Event.DEVICE_IDENTIFY)
 
     def home(self) -> None:
         """Return the device to home: absolute position 0"""
         self.__ensure_port_open()
-        self.logger.info("Stub Waveplate Home")
+        self.log.info(event=Event.WAVEPLATE_HOME)
 
         if not self.__stub_check_channel(1):
             # Do nothing if channel is not enabled
@@ -91,24 +93,24 @@ class WaveplateStub:
         # Simulated delay for homing
         # TODO: Delay calculation
         time.sleep(1)
-        self.logger.info("Home position: %s", self.current_position)
+        self.log.debug("Home position: %s", self.current_position)
 
     def auto_update_start(self) -> None:
         """Start automatically logging device information"""
         self.__ensure_port_open()
-        self.logger.info("Stub Waveplate Auto Update Start")
+        self.log.debug("Stub Waveplate Auto Update Start")
         # TODO: Auto updating logging
 
     def auto_update_stop(self) -> None:
         """Stop automatically logging device information"""
         self.__ensure_port_open()
-        self.logger.info("Stub Waveplate Auto Update Stop")
+        self.log.debug("Stub Waveplate Auto Update Stop")
         # TODO: Auto updating logging
 
     def disable_channel(self, chanid: int) -> None:
         """Disable a channel on the device specified by chanid"""
         self.__ensure_port_open()
-        self.logger.info("Stub Waveplate Disable Channel: %s", chanid)
+        self.log.debug("Stub Waveplate Disable Channel: %s", chanid)
 
         if chanid > self.max_channel:
             raise WaveplateInvalidMotorChannelError(f"Invalid motor channel: {chanid}.")
@@ -122,7 +124,7 @@ class WaveplateStub:
     def enable_channel(self, chanid: int) -> None:
         """Enable a channel on the device specified by chanid"""
         self.__ensure_port_open()
-        self.logger.info("Stub Waveplate Enable Channel: %s", chanid)
+        self.log.debug("Stub Waveplate Enable Channel: %s", chanid)
         if chanid > self.max_channel:
             raise WaveplateInvalidMotorChannelError(f"Invalid motor channel: {chanid}.")
 
@@ -140,8 +142,8 @@ class WaveplateStub:
     def getpos(self) -> int:
         """Get the current position of the device in steps"""
         self.__ensure_port_open()
-        self.logger.info("Stub Waveplate Get Position")
-        self.logger.info(
+        self.log.debug("Stub Waveplate Get Position")
+        self.log.debug(
             "Current Position: Steps: %s Degrees: %s",
             self.current_position,
             self.current_position / self.resolution,
@@ -151,7 +153,7 @@ class WaveplateStub:
     def get_degree(self) -> float:
         """Get the current position of the device in degrees"""
         self.__ensure_port_open()
-        self.logger.info("Stub Waveplate Get Degree")
+        self.log.debug("Stub Waveplate Get Degree")
         return self.current_position / self.resolution
 
     def rotate(self, degree: int | float) -> None:
@@ -163,7 +165,7 @@ class WaveplateStub:
             # Do nothing if channel is not enabled
             return
 
-        self.logger.info("Stub Waveplate Rotate to %s", degree)
+        self.log.info(event=Event.WAVEPLATE_ROTATE, degree=degree)
         # Calculate number of steps to move (truncate to integer)
         move_position = int(degree * self.resolution)
         # Update current position
@@ -200,7 +202,7 @@ class WaveplateStub:
         self.__ensure_port_open()
         self.__ensure_valid_degree(degree)
 
-        self.logger.info("Stub Waveplate Custom Home %s", degree)
+        self.log.debug("Stub Waveplate Custom Home %s", degree)
 
         if not self.__stub_check_channel(1):
             # Do nothing if channel is not enabled
@@ -214,10 +216,10 @@ class WaveplateStub:
         """Rotate the device to a specified degree relative to the custom home position"""
         self.__ensure_port_open()
 
-        self.logger.info("Stub Waveplate Custom Rotate %s", degree)
+        self.log.debug("Stub Waveplate Custom Rotate %s", degree)
 
         if not self.relative_home:
-            self.logger.error("Custom Home not set")
+            self.log.error("Custom Home not set")
             raise WavePlateCustomRotateError("Waveplate({self}) relative_home not set")
 
         if not self.__stub_check_channel(1):
