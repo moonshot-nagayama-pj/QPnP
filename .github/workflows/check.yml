@@ -5,7 +5,6 @@ name: Code Checks
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-  workflow_dispatch:
 
 jobs:
   check-codes:
