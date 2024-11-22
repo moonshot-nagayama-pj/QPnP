@@ -39,8 +39,11 @@ cd "${project_dir}"
 # version_string=$(rye --version | head -n 1 | cut -d ' ' -f 2)
 # stdmsg "Rye version: ${version_string}"
 
-stdmsg "Running rye sync..."
-rye sync
+# stdmsg "Running rye sync..."
+# rye sync
+
+stdmsg "Running uv sync with dev dependencies..."
+uv sync --dev
 
 stdmsg "Activating virtual environment..."
 source .venv/bin/activate
