@@ -6,7 +6,7 @@ from pnpq.apt.protocol import ChanIdent, JogDirection
 from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
     PolarizationControllerThorlabsMPC320,
 )
-from pnpq.units import ureg
+from pnpq.units import pnpq_ureg
 
 
 @pytest.fixture(name="device", scope="module")
@@ -26,21 +26,21 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     device.home(ChanIdent.CHANNEL_2)
     device.home(ChanIdent.CHANNEL_3)
 
-    device.move_absolute(ChanIdent.CHANNEL_1, 160 * ureg.degree)
-    device.move_absolute(ChanIdent.CHANNEL_2, 160 * ureg.degree)
-    device.move_absolute(ChanIdent.CHANNEL_3, 160 * ureg.degree)
+    device.move_absolute(ChanIdent.CHANNEL_1, 160 * pnpq_ureg.degree)
+    device.move_absolute(ChanIdent.CHANNEL_2, 160 * pnpq_ureg.degree)
+    device.move_absolute(ChanIdent.CHANNEL_3, 160 * pnpq_ureg.degree)
 
-    # device.move_absolute(ChanIdent.CHANNEL_2, 30 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_1, 90 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_3, 90 * ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_2, 30 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 90 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_3, 90 * pnpq_ureg.degree)
 
-    # device.move_absolute(ChanIdent.CHANNEL_3, 165 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_2, 90 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_1, 0 * ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_3, 165 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_2, 90 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 0 * pnpq_ureg.degree)
 
-    # device.move_absolute(ChanIdent.CHANNEL_1, 10 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_1, 100 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_1, 50 * ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 10 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 100 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 50 * pnpq_ureg.degree)
 
     device.home(ChanIdent.CHANNEL_1)
     device.home(ChanIdent.CHANNEL_2)
@@ -50,9 +50,9 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     # off its motor when it's homed or set to 0 degrees. It just sits
     # there vibrating and whining. It's not really safe to leave the
     # device at degree 0 for this reason. 170 also seems too far (160 seems about the safest)
-    # device.move_absolute(ChanIdent.CHANNEL_1, 10 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_2, 10 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_3, 10 * ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 10 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_2, 10 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_3, 10 * pnpq_ureg.degree)
 
     # device.set_params(home_position=1000)
 
@@ -60,19 +60,19 @@ def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
     # device.home(ChanIdent.CHANNEL_2)
     # device.home(ChanIdent.CHANNEL_3)
 
-    # device.move_absolute(ChanIdent.CHANNEL_1, 10 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_2, 10 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_3, 10 * ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 10 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_2, 10 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_3, 10 * pnpq_ureg.degree)
 
-    # device.set_params(home_position=0 * ureg.degree)
+    # device.set_params(home_position=0 * pnpq_ureg.degree)
 
     # device.home(ChanIdent.CHANNEL_1)
     # device.home(ChanIdent.CHANNEL_2)
     # device.home(ChanIdent.CHANNEL_3)
 
-    # device.move_absolute(ChanIdent.CHANNEL_1, 0 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_2, 0 * ureg.degree)
-    # device.move_absolute(ChanIdent.CHANNEL_3, 0 * ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_1, 0 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_2, 0 * pnpq_ureg.degree)
+    # device.move_absolute(ChanIdent.CHANNEL_3, 0 * pnpq_ureg.degree)
 
 
 def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
@@ -86,13 +86,13 @@ def test_jog(device: PolarizationControllerThorlabsMPC320) -> None:
     device.home(ChanIdent.CHANNEL_2)
     device.home(ChanIdent.CHANNEL_3)
 
-    jog_step = 50 * ureg.mpc320_step
+    jog_step = 50 * pnpq_ureg.mpc320_step
     jog_count = 5
 
     device.set_params(jog_step_1=jog_step, jog_step_2=jog_step, jog_step_3=jog_step)
 
     # Home should be set to 0 for this test to work
-    # device.set_params(home_position=0*ureg.degree)
+    # device.set_params(home_position=0*pnpq_ureg.degree)
 
     try:
         for _ in range(jog_count):
@@ -117,11 +117,11 @@ def test_invalid_angle_inputs(device: PolarizationControllerThorlabsMPC320) -> N
     device.identify(ChanIdent.CHANNEL_1)
 
     with pytest.raises(ValueError):
-        device.move_absolute(ChanIdent.CHANNEL_1, 171 * ureg.degree)
-        device.move_absolute(ChanIdent.CHANNEL_1, -1 * ureg.degree)
+        device.move_absolute(ChanIdent.CHANNEL_1, 171 * pnpq_ureg.degree)
+        device.move_absolute(ChanIdent.CHANNEL_1, -1 * pnpq_ureg.degree)
 
     with pytest.raises(DimensionalityError):
-        device.move_absolute(ChanIdent.CHANNEL_1, 1 * ureg.meter)
+        device.move_absolute(ChanIdent.CHANNEL_1, 1 * pnpq_ureg.meter)
 
 
 def test_set_params(device: PolarizationControllerThorlabsMPC320) -> None:
@@ -133,7 +133,7 @@ def test_set_params(device: PolarizationControllerThorlabsMPC320) -> None:
 
     # Set a custom home position
     params = device.get_params()
-    params["home_position"] = 100 * ureg.degree
+    params["home_position"] = 100 * pnpq_ureg.degree
     device.set_params(**params)
 
     device.home(ChanIdent.CHANNEL_1)
@@ -142,7 +142,7 @@ def test_set_params(device: PolarizationControllerThorlabsMPC320) -> None:
 
     # Reset the home position
     params = device.get_params()
-    params["home_position"] = 0 * ureg.degree
+    params["home_position"] = 0 * pnpq_ureg.degree
     device.set_params(**params)
 
     device.home(ChanIdent.CHANNEL_1)

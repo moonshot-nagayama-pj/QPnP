@@ -26,7 +26,7 @@ from ..apt.protocol import (
     EnableState,
     JogDirection,
 )
-from ..units import ureg
+from ..units import pnpq_ureg
 
 
 class PolarizationControllerParams(TypedDict):
@@ -208,11 +208,11 @@ class PolarizationControllerThorlabsMPC320:
         )
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
         result: PolarizationControllerParams = {
-            "velocity": params.velocity * ureg.mpc320_velocity,
-            "home_position": params.home_position * ureg.mpc320_step,
-            "jog_step_1": params.jog_step_1 * ureg.mpc320_step,
-            "jog_step_2": params.jog_step_2 * ureg.mpc320_step,
-            "jog_step_3": params.jog_step_3 * ureg.mpc320_step,
+            "velocity": params.velocity * pnpq_ureg.mpc320_velocity,
+            "home_position": params.home_position * pnpq_ureg.mpc320_step,
+            "jog_step_1": params.jog_step_1 * pnpq_ureg.mpc320_step,
+            "jog_step_2": params.jog_step_2 * pnpq_ureg.mpc320_step,
+            "jog_step_3": params.jog_step_3 * pnpq_ureg.mpc320_step,
         }
         return result
 

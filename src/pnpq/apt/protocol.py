@@ -10,7 +10,7 @@ from typing import ClassVar, Self
 
 from pint import Quantity
 
-from ..units import ureg
+from ..units import pnpq_ureg
 
 
 @enum.unique
@@ -497,7 +497,7 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
     def __post_init__(self) -> None:
         # Ensure that a unit of current was passed in by attempting to
         # convert it to milliamps.
-        self.motor_current.to(ureg.milliamp)
+        self.motor_current.to(pnpq_ureg.milliamp)
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> Self:
@@ -532,7 +532,7 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
             chan_ident=ChanIdent(chan_ident),
             position=position,
             velocity=velocity,
-            motor_current=(motor_current * ureg.milliamp),
+            motor_current=(motor_current * pnpq_ureg.milliamp),
             status=Status.from_bits(StatusBits(status_flag)),
         )
 
@@ -545,7 +545,7 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
             self.chan_ident,
             self.position,
             self.velocity,
-            round(self.motor_current.to(ureg.milliamp).magnitude),
+            round(self.motor_current.to(pnpq_ureg.milliamp).magnitude),
             self.status.to_bits(),
         )
 

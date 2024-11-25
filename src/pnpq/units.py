@@ -4,23 +4,24 @@ import pint
 from pint import Quantity
 from pint.facets.plain import PlainQuantity
 
-ureg = pint.UnitRegistry()
+pnpq_ureg = pint.UnitRegistry()
 
 # Custom unit definitions for MPC320
-ureg.define("mpc320_step = (170 / 1370) degree")
+pnpq_ureg.define("mpc320_step = (170 / 1370) degree")
 
 # According to the protocol, velocity is expressed as a percentage of the maximum speed, ranging from 10% to 100%.
 # The maximum velocity is defined as 400 degrees per second, so we store velocity as a dimensionless proportion of this value.
 # Thus, the unit for mpc_velocity will be set as dimensionless.
 # A transformation function (defined below) will convert other units, like degrees per second, into this proportional form.
-ureg.define("mpc320_velocity = []")
+pnpq_ureg.define("mpc320_velocity = []")
 
 context = pint.Context("mpc320_proportional_velocity")
 
-mpc320_max_velocity: Quantity = cast(Quantity, 400 * (ureg.degree / ureg.second))
+mpc320_max_velocity: Quantity = cast(
+    Quantity, 400 * (pnpq_ureg.degree / pnpq_ureg.second)
+)
 
 
-# pylint: disable=W0621
 def to_mpc320_velocity(
     ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
 ) -> PlainQuantity[Quantity]:
@@ -57,5 +58,5 @@ context.add_transformation(
     / 100,  # Convert value from percent
 )
 
-ureg.add_context(context)
-ureg.enable_contexts("mpc320_proportional_velocity")
+pnpq_ureg.add_context(context)
+pnpq_ureg.enable_contexts("mpc320_proportional_velocity")
