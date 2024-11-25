@@ -1,4 +1,8 @@
+from typing import Any, cast
+
 import pint
+from pint import Quantity
+from pint.facets.plain import PlainQuantity
 
 ureg = pint.UnitRegistry()
 
@@ -11,17 +15,39 @@ ureg.define("mpc320_step = (170 / 1370) degree")
 # A transformation function (defined below) will convert other units, like degrees per second, into this proportional form.
 ureg.define("mpc320_velocity = []")
 
-
 context = pint.Context("mpc320_proportional_velocity")
 
-mpc320_max_velocity = 400 * (ureg.degree / ureg.second)
+mpc320_max_velocity: Quantity = cast(Quantity, 400 * (ureg.degree / ureg.second))
+
+
+# pylint: disable=W0621
+def to_mpc320_velocity(
+    ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
+) -> PlainQuantity[Quantity]:
+    """
+    Converts a given velocity to an mpc320 velocity percentage.
+    Raises a ValueError if the rounded velocity is out of the range [10, 100].
+    """
+    # Ensure velocity is in the same units as max velocity
+    velocity_in_degrees: Quantity = cast(Quantity, value.to(mpc320_max_velocity.units))
+
+    converted_velocity = (velocity_in_degrees / mpc320_max_velocity) * 100
+    rounded_velocity: Quantity = (
+        int(round(converted_velocity).magnitude) * ureg.dimensionless
+    )
+
+    if rounded_velocity.magnitude < 10 or rounded_velocity.magnitude > 100:
+        raise ValueError(
+            f"Rounded mpc320_velocity {rounded_velocity.magnitude} is out of range (10 to 100)."
+        )
+
+    return rounded_velocity
 
 
 context.add_transformation(
     "degree / second",
     "mpc320_velocity",
-    lambda ureg, value, **kwargs: (value / mpc320_max_velocity)
-    * 100,  # Convert value to percent
+    to_mpc320_velocity,  # Convert value to percent
 )
 
 context.add_transformation(

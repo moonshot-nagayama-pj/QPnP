@@ -38,13 +38,18 @@ def test_angle_to_mpc320_step_conversion(
     assert mpc320_step == pytest.approx(expected_mpc320_step)
 
 
+# Test that [angle] / second quantities accurately convert into mpc320_velocity quantities
 @pytest.mark.parametrize(
     "angular_velocity, unit, mpc320_velocity",
     [
         (200, ureg("degree / second"), 50),
         (300, ureg("degree / second"), 75),
+        (201, ureg("degree / second"), 50),
+        (299, ureg("degree / second"), 75),
         (200 * (pi / 180), ureg("radian / second"), 50),
         (300 * (pi / 180), ureg("radian / second"), 75),
+        (201 * (pi / 180), ureg("radian / second"), 50),
+        (299 * (pi / 180), ureg("radian / second"), 75),
         (200 / (170 / 1370), ureg("mpc320_step / second"), 50),
         (300 / (170 / 1370), ureg("mpc320_step / second"), 75),
     ],
@@ -53,13 +58,13 @@ def test_to_mpc320_velocity_conversion(
     angular_velocity: float, unit: Quantity, mpc320_velocity: float
 ) -> None:
 
-    # Test that [angle] / second quantities accurately convert into mpc320_velocity quantities
     velocity = angular_velocity * unit
     proportion = velocity.to("mpc320_velocity")
     assert mpc320_velocity == pytest.approx(proportion.magnitude)
     assert "mpc320_velocity" == proportion.units
 
 
+# Test that mpc320_velocity quantities accurately convert back into [angle] / second quantities
 @pytest.mark.parametrize(
     "angular_velocity, unit, mpc320_velocity",
     [
@@ -74,8 +79,19 @@ def test_to_mpc320_velocity_conversion(
 def test_from_mpc320_velocity_conversion(
     angular_velocity: float, unit: Quantity, mpc320_velocity: float
 ) -> None:
-    # Test that mpc320_velocity quantities accurately convert back into [angle] / second quantities
+
     proportion = mpc320_velocity * ureg.mpc320_velocity
     velocity = proportion.to(unit)
     assert angular_velocity == pytest.approx(velocity.magnitude)
     assert unit.units == velocity.units
+
+
+def test_to_mpc320_velocity_out_of_bounds() -> None:
+
+    with pytest.raises(ValueError, match="Rounded mpc320_velocity .* is out of range"):
+        velocity = 5 * (ureg.degree / ureg.second)  # Too low
+        velocity.to(ureg.mpc320_velocity)
+
+    with pytest.raises(ValueError, match="Rounded mpc320_velocity .* is out of range"):
+        velocity = 450 * (ureg.degree / ureg.second)  # Too high
+        velocity.to(ureg.mpc320_velocity)
