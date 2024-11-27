@@ -14,13 +14,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Install uv and enable caching
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+        version: "0.5.4"
+
+    - name: Set up Python with uv
+      run: uv python install
+
     - name: Install other dependencies
       run: |
         ./bin/install-dependencies.bash
-
-    - name: Install rye
-      run: |
-        ./bin/install-rye.bash "$(mktemp --tmpdir -d 'rye-install.XXXXXXXX')"
 
     - name: Run check script
       run: |

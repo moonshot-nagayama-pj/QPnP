@@ -34,13 +34,8 @@ project_dir="$(cd "${base_dir}/.." >/dev/null && pwd -P)"
 # cd to the directory before running rye
 cd "${project_dir}"
 
-# Check rye version (and whether it's installed or not)
-# stdmsg "Checking if rye is installed..."
-# version_string=$(rye --version | head -n 1 | cut -d ' ' -f 2)
-# stdmsg "Rye version: ${version_string}"
-
-stdmsg "Running rye sync..."
-rye sync
+stdmsg "Running uv sync with dev dependencies..."
+uv sync --dev
 
 stdmsg "Activating virtual environment..."
 source .venv/bin/activate
@@ -65,8 +60,8 @@ find . -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellchec
 stdmsg "Checking shell script formatting with shfmt..."
 shfmt --diff --simplify .
 
-stdmsg "Running rye lint..."
-rye lint
+stdmsg "Running ruff check..."
+ruff check .
 
 stdmsg "Building documentation..."
 sphinx-build -M html sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
