@@ -26,15 +26,20 @@ from ..apt.protocol import (
     EnableState,
     JogDirection,
 )
-from ..units import ureg
+from ..units import pnpq_ureg
 
 
 class PolarizationControllerParams(TypedDict):
-    velocity: int
+    #: Dimensionality must be ([angle] / [time]) or mpc320_velocity
+    velocity: Quantity
+    #: Dimensionality must be [angle] or mpc320_step
     home_position: Quantity
-    jog_step_1: int
-    jog_step_2: int
-    jog_step_3: int
+    #: Dimensionality must be [angle] or mpc320_step
+    jog_step_1: Quantity
+    #: Dimensionality must be [angle] or mpc320_step
+    jog_step_2: Quantity
+    #: Dimensionality must be [angle] or mpc320_step
+    jog_step_3: Quantity
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -203,11 +208,11 @@ class PolarizationControllerThorlabsMPC320:
         )
         assert isinstance(params, AptMessage_MGMSG_POL_GET_PARAMS)
         result: PolarizationControllerParams = {
-            "velocity": params.velocity,
-            "home_position": params.home_position * ureg.mpc320_step,
-            "jog_step_1": params.jog_step_1,
-            "jog_step_2": params.jog_step_2,
-            "jog_step_3": params.jog_step_3,
+            "velocity": params.velocity * pnpq_ureg.mpc320_velocity,
+            "home_position": params.home_position * pnpq_ureg.mpc320_step,
+            "jog_step_1": params.jog_step_1 * pnpq_ureg.mpc320_step,
+            "jog_step_2": params.jog_step_2 * pnpq_ureg.mpc320_step,
+            "jog_step_3": params.jog_step_3 * pnpq_ureg.mpc320_step,
         }
         return result
 
@@ -234,35 +239,35 @@ class PolarizationControllerThorlabsMPC320:
 
     def set_params(
         self,
-        velocity: None | int = None,
+        velocity: None | Quantity = None,
         home_position: None | Quantity = None,
-        jog_step_1: None | int = None,
-        jog_step_2: None | int = None,
-        jog_step_3: None | int = None,
+        jog_step_1: None | Quantity = None,
+        jog_step_2: None | Quantity = None,
+        jog_step_3: None | Quantity = None,
     ) -> None:
         # First load existing params
 
         params = self.get_params()
         # Replace params that need to be changed
         if velocity is not None:
-            params["velocity"] = velocity
+            params["velocity"] = cast(Quantity, velocity.to("mpc320_velocity"))
         if home_position is not None:
             params["home_position"] = cast(Quantity, home_position.to("mpc320_step"))
         if jog_step_1 is not None:
-            params["jog_step_1"] = jog_step_1
+            params["jog_step_1"] = cast(Quantity, jog_step_1.to("mpc320_step"))
         if jog_step_2 is not None:
-            params["jog_step_2"] = jog_step_2
+            params["jog_step_2"] = cast(Quantity, jog_step_2.to("mpc320_step"))
         if jog_step_3 is not None:
-            params["jog_step_3"] = jog_step_3
+            params["jog_step_3"] = cast(Quantity, jog_step_3.to("mpc320_step"))
         # Send params to device
         self.connection.send_message_no_reply(
             AptMessage_MGMSG_POL_SET_PARAMS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
-                velocity=params["velocity"],
+                velocity=round(params["velocity"].magnitude),
                 home_position=round(params["home_position"].magnitude),
-                jog_step_1=params["jog_step_1"],
-                jog_step_2=params["jog_step_2"],
-                jog_step_3=params["jog_step_3"],
+                jog_step_1=round(params["jog_step_1"].magnitude),
+                jog_step_2=round(params["jog_step_2"].magnitude),
+                jog_step_3=round(params["jog_step_3"].magnitude),
             )
         )

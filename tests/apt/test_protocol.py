@@ -40,7 +40,7 @@ from pnpq.apt.protocol import (
     Status,
     StopMode,
 )
-from pnpq.units import ureg
+from pnpq.units import pnpq_ureg
 
 
 def test_AptMessage_MGMSG_HW_DISCONNECT_from_bytes() -> None:
@@ -314,7 +314,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_from_bytes() -> None:
     assert msg.source == 0x22
     assert msg.position == 16777216
     assert msg.velocity == 256
-    assert msg.motor_current == -1 * ureg.milliamp
+    assert msg.motor_current == -1 * pnpq_ureg.milliamp
     assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
 
 
@@ -325,7 +325,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
         chan_ident=ChanIdent.CHANNEL_1,
         position=1,
         velocity=1,
-        motor_current=(-1 * ureg.milliamp),
+        motor_current=(-1 * pnpq_ureg.milliamp),
         status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
     )
     assert msg.to_bytes() == bytes.fromhex(
@@ -341,7 +341,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_invalid_unit() -> None:
             chan_ident=ChanIdent.CHANNEL_1,
             position=1,
             velocity=1,
-            motor_current=(-1 * ureg.meter),
+            motor_current=(-1 * pnpq_ureg.meter),
             status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
         )
 
