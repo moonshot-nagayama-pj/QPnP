@@ -32,6 +32,9 @@ def test_move_absolute() -> None:
     ) -> None:
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_ABSOLUTE):
 
+            assert sent_message.absolute_distance == 10
+            assert sent_message.chan_ident == ChanIdent(1)
+
             # A hypothetical reply message from the device
             reply_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
                 chan_ident=sent_message.chan_ident,
