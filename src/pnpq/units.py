@@ -1,10 +1,51 @@
-from typing import Any, cast
+from decimal import Decimal
+from fractions import Fraction
+from typing import Any, TypeAlias, cast
 
 import pint
 from pint import Quantity
-from pint.facets.plain import PlainQuantity
+from pint.facets.plain import PlainQuantity, PlainUnit
+from pint.util import UnitsContainer
 
-pnpq_ureg = pint.UnitRegistry()
+
+# Custom class that provides some custom behaviors
+class PnPQCustomQuantity(Quantity):
+    """
+    Custom Quantity class that rounds the magnitude of the value to the nearest integer when the unit is in the list of rounded_units.
+    """
+
+    rounded_units = ["mpc320_step", "mpc320_steps"]
+
+    def to(  # pylint: disable=keyword-arg-before-vararg
+        self,
+        other: (
+            PlainQuantity[Any]
+            | str
+            | dict[str, float | int | Decimal | Fraction | Any]
+            | UnitsContainer
+            | PlainUnit
+            | None
+        ) = None,
+        *contexts: Any,
+        **ctx_kwargs: Any,
+    ) -> PlainQuantity[Any]:
+        """
+        Override implementation to implement rounding behavior.
+        """
+        value = super().to(other, *contexts, **ctx_kwargs)
+        if other in self.rounded_units:
+            return cast(
+                Quantity, PnPQCustomQuantity(round(value.magnitude), value.units)
+            )
+        return cast(Quantity, value)
+
+
+# Custom registry
+class PnPQCustomUnitRegistry(pint.UnitRegistry):
+    Quantity: TypeAlias = PnPQCustomQuantity
+
+
+pnpq_ureg = PnPQCustomUnitRegistry()
 
 # Custom unit definitions for MPC320
 pnpq_ureg.define("mpc320_step = (170 / 1370) degree")

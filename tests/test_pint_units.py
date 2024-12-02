@@ -26,6 +26,7 @@ def test_mpc320_step_to_angle_conversion(
         (-170, -1370),
         (0, 0),
         (170, 1370),
+        (169, 1362),  # This will be able to test the actual rounding
     ],
 )
 def test_angle_to_mpc320_step_conversion(
@@ -33,7 +34,7 @@ def test_angle_to_mpc320_step_conversion(
 ) -> None:
 
     mpc320_step = (test_angle * pnpq_ureg.degree).to("mpc320_step").magnitude
-    assert mpc320_step == pytest.approx(expected_mpc320_step)
+    assert mpc320_step == expected_mpc320_step
 
 
 # Test that [angle] / second quantities accurately convert into mpc320_velocity quantities
