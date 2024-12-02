@@ -17,7 +17,7 @@ from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
 from pnpq.units import pnpq_ureg
 
 
-def test_polarization_controller_move_absolute() -> None:
+def test_move_absolute() -> None:
 
     connection = create_autospec(AptConnection)
 
