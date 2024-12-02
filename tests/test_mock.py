@@ -30,7 +30,6 @@ def test_polarization_controller_move_absolute() -> None:
             bool,
         ],
     ) -> None:
-        # Only send a reply if the message is a MOVE_ABSOLUTE message
         if isinstance(sent_message, AptMessage_MGMSG_MOT_MOVE_ABSOLUTE):
 
             # A hypothetical reply message from the device
