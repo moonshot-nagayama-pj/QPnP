@@ -30,7 +30,7 @@ def test_mpc320_step_to_angle_conversion(
     ],
 )
 def test_angle_to_mpc320_step_conversion(
-    test_angle: float, expected_mpc320_step: float
+    test_angle: float, expected_mpc320_step: int
 ) -> None:
 
     mpc320_step = (test_angle * pnpq_ureg.degree).to("mpc320_step").magnitude
