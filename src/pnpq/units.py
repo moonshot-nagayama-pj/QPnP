@@ -14,7 +14,7 @@ class PnPQCustomQuantity(Quantity):
     Custom Quantity class that rounds the magnitude of the value to the nearest integer when the unit is in the list of rounded_units.
     """
 
-    rounded_units = ["mpc320_step", "mpc320_steps"]
+    rounded_units = ["mpc320_step"]
 
     def to(  # pylint: disable=keyword-arg-before-vararg
         self,
@@ -33,7 +33,7 @@ class PnPQCustomQuantity(Quantity):
         Override implementation to implement rounding behavior.
         """
         value = super().to(other, *contexts, **ctx_kwargs)
-        if other in self.rounded_units:
+        if value.units in self.rounded_units:
             return cast(
                 Quantity, PnPQCustomQuantity(round(value.magnitude), value.units)
             )
@@ -41,8 +41,11 @@ class PnPQCustomQuantity(Quantity):
 
 
 # Custom registry
-class PnPQCustomUnitRegistry(pint.UnitRegistry):
+class PnPQCustomUnitRegistry(
+    pint.registry.GenericUnitRegistry[PnPQCustomQuantity, pint.Unit]
+):  # pylint: disable=too-many-ancestors
     Quantity: TypeAlias = PnPQCustomQuantity
+    Unit: TypeAlias = pint.Unit
 
 
 pnpq_ureg = PnPQCustomUnitRegistry()

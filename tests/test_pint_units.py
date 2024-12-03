@@ -35,6 +35,7 @@ def test_angle_to_mpc320_step_conversion(
 
     mpc320_step = (test_angle * pnpq_ureg.degree).to("mpc320_step").magnitude
     assert mpc320_step == expected_mpc320_step
+    assert isinstance(mpc320_step, int)
 
 
 # Test that [angle] / second quantities accurately convert into mpc320_velocity quantities
