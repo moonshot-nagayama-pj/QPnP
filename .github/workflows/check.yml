@@ -31,3 +31,6 @@ jobs:
     - name: Run check script
       run: |
         ./bin/check.bash
+
+    - name: Clean up uv cache
+      run: uv cache prune --ci
