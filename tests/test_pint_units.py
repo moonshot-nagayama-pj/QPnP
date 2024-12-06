@@ -60,7 +60,7 @@ def test_to_mpc320_velocity_conversion(
 
     proportion = angular_velocity.to("mpc320_velocity")
     assert mpc320_velocity == proportion.magnitude
-    assert "mpc320_velocity" == proportion.units
+    assert isinstance(proportion.magnitude, int)
 
 
 # Test that mpc320_velocity quantities accurately convert back into [angle] / second quantities
