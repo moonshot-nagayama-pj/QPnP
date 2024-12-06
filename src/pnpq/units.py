@@ -6,8 +6,9 @@ from pint.facets.plain import PlainQuantity
 
 pnpq_ureg = pint.UnitRegistry()
 
-# Custom unit definitions for MPC320
+# Custom unit definitions for devices
 pnpq_ureg.define("mpc320_step = (170 / 1370) degree")
+pnpq_ureg.define("k10cr1_step = (1 / 136533) degree")
 
 # According to the protocol, velocity is expressed as a percentage of the maximum speed, ranging from 10% to 100%.
 # The maximum velocity is defined as 400 degrees per second, so we store velocity as a dimensionless proportion of this value.
