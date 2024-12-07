@@ -9,7 +9,6 @@ pnpq_ureg = pint.UnitRegistry()
 thorlabs_context = pint.Context("thorlabs_context")
 
 # Custom unit definitions for MPC320
-# pnpq_ureg.define("mpc320_step = (170 / 1370) degree")
 pnpq_ureg.define("mpc320_step = [dimension_mpc320_step]")
 
 
@@ -26,7 +25,6 @@ def mpc320_steps_to_degree(
     return Quantity(value.magnitude * 170 / 1370, ureg.degree)
 
 
-# Create and register the context
 thorlabs_context.add_transformation("degree", "mpc320_step", degree_to_mpc320_steps)
 thorlabs_context.add_transformation("mpc320_step", "degree", mpc320_steps_to_degree)
 
@@ -54,7 +52,7 @@ def to_mpc320_velocity(
 
     converted_velocity = (velocity_in_degrees / mpc320_max_velocity) * 100
     rounded_velocity: Quantity = (
-        int(round(converted_velocity).magnitude) * ureg.mpc320_velocity
+        round(converted_velocity.magnitude) * ureg.mpc320_velocity
     )
 
     if rounded_velocity.magnitude < 10 or rounded_velocity.magnitude > 100:
@@ -65,7 +63,7 @@ def to_mpc320_velocity(
     return rounded_velocity
 
 
-def mpc320_velocity_to_speed(
+def mpc320_velocity_to_pint_velocity(
     ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
 ) -> PlainQuantity[Quantity]:
     """
@@ -91,7 +89,7 @@ thorlabs_context.add_transformation(
 
 
 # Add transformations between mpc320_velocity and mpc320_step
-def mpc320_velocity_to_mpc320_step_speed(
+def mpc320_velocity_to_mpc320_step_velocity(
     ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
 ) -> PlainQuantity[Quantity]:
     """
@@ -102,7 +100,7 @@ def mpc320_velocity_to_mpc320_step_speed(
     return Quantity(steps_per_second, cast(Unit, ureg("mpc320_step / second")))
 
 
-def mpc320_step_speed_to_mpc320_velocity(
+def mpc320_step_velocity_to_mpc320_velocity(
     ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
 ) -> PlainQuantity[Quantity]:
     """
