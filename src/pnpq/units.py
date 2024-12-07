@@ -84,7 +84,7 @@ thorlabs_context.add_transformation(
 thorlabs_context.add_transformation(
     "mpc320_velocity",
     "degree / second",
-    mpc320_velocity_to_speed,
+    mpc320_velocity_to_pint_velocity,
 )
 
 
@@ -114,13 +114,13 @@ def mpc320_step_velocity_to_mpc320_velocity(
 thorlabs_context.add_transformation(
     "mpc320_velocity",
     "mpc320_step / second",
-    mpc320_velocity_to_mpc320_step_speed,
+    mpc320_velocity_to_mpc320_step_velocity,
 )
 
 thorlabs_context.add_transformation(
     "mpc320_step / second",
     "mpc320_velocity",
-    mpc320_step_speed_to_mpc320_velocity,
+    mpc320_step_velocity_to_mpc320_velocity,
 )
 
 # Add and enable the context
