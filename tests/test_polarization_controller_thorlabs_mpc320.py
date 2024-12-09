@@ -8,8 +8,8 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     ChanIdent,
-    Status,
-    StatusBits,
+    UStatus,
+    UStatusBits,
 )
 from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
     PolarizationControllerThorlabsMPC320,
@@ -41,7 +41,7 @@ def test_move_absolute() -> None:
                 position=sent_message.absolute_distance,
                 velocity=50,
                 motor_current=3 * pnpq_ureg.milliamp,
-                status=Status.from_bits(StatusBits.ACTIVE),
+                status=UStatus.from_bits(UStatusBits.ACTIVE),
                 destination=Address.HOST_CONTROLLER,
                 source=Address.GENERIC_USB,
             )

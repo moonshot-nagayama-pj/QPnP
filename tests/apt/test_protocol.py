@@ -37,8 +37,8 @@ from pnpq.apt.protocol import (
     FirmwareVersion,
     HardwareType,
     JogDirection,
-    Status,
     StopMode,
+    UStatus,
 )
 from pnpq.units import pnpq_ureg
 
@@ -315,7 +315,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_from_bytes() -> None:
     assert msg.position == 16777216
     assert msg.velocity == 256
     assert msg.motor_current == -1 * pnpq_ureg.milliamp
-    assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
+    assert msg.status == UStatus(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
 
 
 def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
@@ -326,7 +326,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
         position=1,
         velocity=1,
         motor_current=(-1 * pnpq_ureg.milliamp),
-        status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+        status=UStatus(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
     )
     assert msg.to_bytes() == bytes.fromhex(
         "9104 0e00 81 22 0100 01000000 0100 FFFF 07000000"
@@ -342,7 +342,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_invalid_unit() -> None:
             position=1,
             velocity=1,
             motor_current=(-1 * pnpq_ureg.meter),
-            status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+            status=UStatus(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
         )
 
 

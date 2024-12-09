@@ -143,7 +143,7 @@ class JogDirection(int, Enum):
 
 
 @enum.unique
-class StatusBits(IntFlag, boundary=STRICT):
+class UStatusBits(IntFlag, boundary=STRICT):
     """Bitmask used in MGMSG_MOT_GET_USTATUSUPDATE to indicate motor
     conditions. In the official documentation, all of these names have
     P_MOT_SB prepended to them.
@@ -187,8 +187,8 @@ class StatusBits(IntFlag, boundary=STRICT):
 
 
 @dataclass(frozen=True, kw_only=True)
-class Status:
-    """Dataclass-based representation of StatusBits to enable more
+class UStatus:
+    """Dataclass-based representation of UStatusBits to enable more
     legible output formats such as JSON.
     """
 
@@ -226,18 +226,18 @@ class Status:
     ENABLED: bool = False
 
     @classmethod
-    def from_bits(cls, bits: StatusBits) -> Self:
+    def from_bits(cls, bits: UStatusBits) -> Self:
         kwargs = {}
         for bit in iter(bits):
             kwargs[bit.name] = True
         # See bug https://github.com/python/mypy/issues/13674
         return cls(**kwargs)  # type: ignore
 
-    def to_bits(self) -> StatusBits:
-        bits = StatusBits(0)
+    def to_bits(self) -> UStatusBits:
+        bits = UStatusBits(0)
         for field in dataclasses.fields(self):
             if getattr(self, field.name):
-                bits = bits | StatusBits[field.name]
+                bits = bits | UStatusBits[field.name]
         return bits
 
 
@@ -492,7 +492,7 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
     position: int
     velocity: int
     motor_current: Quantity
-    status: Status
+    status: UStatus
 
     def __post_init__(self) -> None:
         # Ensure that a unit of current was passed in by attempting to
@@ -533,7 +533,7 @@ class AptMessageWithDataMotorStatus(AptMessageWithData):
             position=position,
             velocity=velocity,
             motor_current=(motor_current * pnpq_ureg.milliamp),
-            status=Status.from_bits(StatusBits(status_flag)),
+            status=UStatus.from_bits(UStatusBits(status_flag)),
         )
 
     def to_bytes(self) -> bytes:
