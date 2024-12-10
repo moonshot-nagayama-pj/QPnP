@@ -243,6 +243,7 @@ class UStatus:
                 bits = bits | UStatusBits[field.name]
         return bits
 
+
 @enum.unique
 class StatusBits(IntFlag, boundary=STRICT):
     """Bitmask used in MGMSG_MOT_GET_USTATUSUPDATE to indicate motor
@@ -289,19 +290,20 @@ class Status:
     INTERLOCK: bool = False
 
     @classmethod
-    def from_bits(cls, bits: UStatusBits) -> Self:
+    def from_bits(cls, bits: StatusBits) -> Self:
         kwargs = {}
         for bit in iter(bits):
             kwargs[bit.name] = True
         # See bug https://github.com/python/mypy/issues/13674
         return cls(**kwargs)  # type: ignore
 
-    def to_bits(self) -> UStatusBits:
-        bits = UStatusBits(0)
+    def to_bits(self) -> StatusBits:
+        bits = StatusBits(0)
         for field in dataclasses.fields(self):
             if getattr(self, field.name):
                 bits = bits | UStatusBits[field.name]
         return bits
+
 
 @enum.unique
 class ATS(StrEnum):
@@ -536,6 +538,7 @@ class AptMessageWithDataPosition(AptMessageWithData):
             self.position,
         )
 
+
 @dataclass(frozen=True, kw_only=True)
 class AptMessageWithDataEncCount(AptMessageWithData):
     data_length: ClassVar[int] = 14
@@ -584,7 +587,7 @@ class AptMessageWithDataEncCount(AptMessageWithData):
             chan_ident=ChanIdent(chan_ident),
             position=position,
             enc_count=enc_count,
-            status=UStatus.from_bits(UStatusBits(status_flag)),
+            status=Status.from_bits(StatusBits(status_flag)),
         )
 
     def to_bytes(self) -> bytes:
@@ -598,6 +601,7 @@ class AptMessageWithDataEncCount(AptMessageWithData):
             self.enc_count,
             self.status.to_bits(),
         )
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessageWithDataMotorStatus(AptMessageWithData):
@@ -906,13 +910,16 @@ class AptMessage_MGMSG_MOT_SET_POSCOUNTER(AptMessageWithDataPosition):
 class AptMessage_MGMSG_MOT_REQ_POSCOUNTER(AptMessageHeaderOnlyChanIdent):
     message_id = AptMessageId.MGMSG_MOT_REQ_POSCOUNTER
 
+
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithDataEncCount):
     message_id = AptMessageId.MGMSG_MOT_GET_STATUSUPDATE
 
+
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_REQ_STATUSUPDATE(AptMessageHeaderOnlyChanIdent):
     message_id = AptMessageId.MGMSG_MOT_REQ_STATUSUPDATE
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(AptMessageHeaderOnlyNoParams):
