@@ -243,6 +243,65 @@ class UStatus:
                 bits = bits | UStatusBits[field.name]
         return bits
 
+@enum.unique
+class StatusBits(IntFlag, boundary=STRICT):
+    """Bitmask used in MGMSG_MOT_GET_USTATUSUPDATE to indicate motor
+    conditions. In the official documentation, all of these names have
+    P_MOT_SB prepended to them.
+
+    All spelling errors (e.g. "INITILIZING") are from the official
+    documentation.
+    """
+
+    CWHARDLIMIT = 0x00000001
+    CCWHARDLIMIT = 0x00000002
+    CWSOFTLIMIT = 0x00000004
+    CCWSOFTLIMIT = 0x00000008
+    INMOTIONCW = 0x00000010
+    INMOTIONCCW = 0x00000020
+    JOGGINGCW = 0x00000040
+    JOGGINGCCW = 0x00000080
+    CONNECTED = 0x00000100
+    HOMING = 0x00000200
+    HOMED = 0x00000400
+    INITILIZING = 0x00000800
+    INTERLOCK = 0x00001000
+
+
+@dataclass(frozen=True, kw_only=True)
+class Status:
+    """Dataclass-based representation of UStatusBits to enable more
+    legible output formats such as JSON.
+    """
+
+    CWHARDLIMIT: bool = False
+    CCWHARDLIMIT: bool = False
+    CWSOFTLIMIT: bool = False
+    CCWSOFTLIMIT: bool = False
+    INMOTIONCW: bool = False
+    INMOTIONCCW: bool = False
+    JOGGINGCW: bool = False
+    JOGGINGCCW: bool = False
+    CONNECTED: bool = False
+    HOMING: bool = False
+    HOMED: bool = False
+    INITILIZING: bool = False
+    INTERLOCK: bool = False
+
+    @classmethod
+    def from_bits(cls, bits: UStatusBits) -> Self:
+        kwargs = {}
+        for bit in iter(bits):
+            kwargs[bit.name] = True
+        # See bug https://github.com/python/mypy/issues/13674
+        return cls(**kwargs)  # type: ignore
+
+    def to_bits(self) -> UStatusBits:
+        bits = UStatusBits(0)
+        for field in dataclasses.fields(self):
+            if getattr(self, field.name):
+                bits = bits | UStatusBits[field.name]
+        return bits
 
 @enum.unique
 class ATS(StrEnum):
@@ -491,7 +550,7 @@ class AptMessageWithDataEncCount(AptMessageWithData):
     chan_ident: ChanIdent
     position: int
     enc_count: int
-    status: UStatus
+    status: Status
 
     @classmethod
     def from_bytes(cls, raw: bytes) -> Self:
@@ -848,7 +907,7 @@ class AptMessage_MGMSG_MOT_REQ_POSCOUNTER(AptMessageHeaderOnlyChanIdent):
     message_id = AptMessageId.MGMSG_MOT_REQ_POSCOUNTER
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithDataMotorStatus):
+class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithDataEncCount):
     message_id = AptMessageId.MGMSG_MOT_GET_STATUSUPDATE
 
 @dataclass(frozen=True, kw_only=True)
