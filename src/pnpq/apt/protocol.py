@@ -31,6 +31,9 @@ class AptMessageId(int, Enum):
     MGMSG_MOT_REQ_POSCOUNTER = 0x0411
     MGMSG_MOT_GET_POSCOUNTER = 0x0412
 
+    MGMSG_MOT_GET_STATUSUPDATE = 0x0481
+    MGMSG_MOT_REQ_STATUSUPDATE = 0x0480
+
     MGMSG_MOT_ACK_USTATUSUPDATE = 0x0492
     MGMSG_MOT_GET_USTATUSUPDATE = 0x0491
     MGMSG_MOT_REQ_USTATUSUPDATE = 0x0490
@@ -474,6 +477,68 @@ class AptMessageWithDataPosition(AptMessageWithData):
             self.position,
         )
 
+@dataclass(frozen=True, kw_only=True)
+class AptMessageWithDataEncCount(AptMessageWithData):
+    data_length: ClassVar[int] = 14
+
+    # There are some more bytes at the end according to the documentation:
+    # (WORD - channel 2 identifier, LONG, LONG, LONG)
+    # However, it says that these are for future use and should be ignored.
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}{ATS.WORD}{ATS.LONG}{ATS.LONG}{ATS.DWORD}"
+    )
+
+    chan_ident: ChanIdent
+    position: int
+    enc_count: int
+    status: UStatus
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident,
+            position,
+            enc_count,
+            status_flag,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return cls(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            chan_ident=ChanIdent(chan_ident),
+            position=position,
+            enc_count=enc_count,
+            status=UStatus.from_bits(UStatusBits(status_flag)),
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident,
+            self.position,
+            self.enc_count,
+            self.status.to_bits(),
+        )
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessageWithDataMotorStatus(AptMessageWithData):
@@ -782,6 +847,13 @@ class AptMessage_MGMSG_MOT_SET_POSCOUNTER(AptMessageWithDataPosition):
 class AptMessage_MGMSG_MOT_REQ_POSCOUNTER(AptMessageHeaderOnlyChanIdent):
     message_id = AptMessageId.MGMSG_MOT_REQ_POSCOUNTER
 
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithDataMotorStatus):
+    message_id = AptMessageId.MGMSG_MOT_GET_STATUSUPDATE
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_REQ_STATUSUPDATE(AptMessageHeaderOnlyChanIdent):
+    message_id = AptMessageId.MGMSG_MOT_REQ_STATUSUPDATE
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(AptMessageHeaderOnlyNoParams):

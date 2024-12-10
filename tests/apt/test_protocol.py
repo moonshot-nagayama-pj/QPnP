@@ -15,6 +15,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_POSCOUNTER,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED,
@@ -24,6 +25,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_STOP,
     AptMessage_MGMSG_MOT_MOVE_STOPPED,
     AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
+    AptMessage_MGMSG_MOT_REQ_STATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_SET_EEPROMPARAMS,
     AptMessage_MGMSG_MOT_SET_POSCOUNTER,
@@ -304,6 +306,17 @@ def test_AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE_to_bytes() -> None:
     )
     assert msg.to_bytes() == b"\x92\x04\x00\x00\x50\x01"
 
+def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_from_bytes() -> None:
+    pass
+
+def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_to_bytes() -> None:
+    pass
+
+def test_AptMessage_MGMSG_MOT_REQ_STATUSUPDATE_from_bytes() -> None:
+    pass
+
+def test_AptMessage_MGMSG_MOT_REQ_STATUSUPDATE_to_bytes() -> None:
+    pass
 
 def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE.from_bytes(
