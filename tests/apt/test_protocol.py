@@ -295,7 +295,7 @@ def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_to_bytes() -> None:
 
 def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE.from_bytes(
-        bytes.fromhex("8104 0e00 81 22 01000100 000000000000 07000000")
+        bytes.fromhex("8104 0e00 81 22 0100 01000000 00000000 07000000")
     )
     assert msg.destination == 0x01
     assert msg.message_id == 0x0481
@@ -315,7 +315,7 @@ def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_to_bytes() -> None:
         status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
     )
     assert msg.to_bytes() == bytes.fromhex(
-        "8104 0e00 81 22 01000100 000000000000 07000000"
+        "8104 0e00 81 22 0100 01000000 00000000 07000000"
     )
 
 

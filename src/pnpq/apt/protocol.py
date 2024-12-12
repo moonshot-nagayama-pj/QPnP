@@ -146,7 +146,7 @@ class JogDirection(int, Enum):
 
 
 @enum.unique
-class UStatusBits(IntFlag, boundary=STRICT):
+class UStatusBits(IntFlag):
     """Bitmask used in MGMSG_MOT_GET_USTATUSUPDATE to indicate motor
     conditions. In the official documentation, all of these names have
     P_MOT_SB prepended to them.
@@ -245,9 +245,10 @@ class UStatus:
 
 
 @enum.unique
-class StatusBits(IntFlag, boundary=STRICT):
-    """Bitmask used in MGMSG_MOT_GET_STATUSUPDATE to indicate motor
-    conditions. In the official documentation, these values are not given clear, parseable names. However, nearly all of them correspond to values defined for the slightly different ``MGMSG_MOT_GET_USTATUSUPDATE`` command that do have clear names; we re-use those names here.
+class StatusBits(IntFlag):
+    """Bitmask used in MGMSG_MOT_GET_STATUSUPDATE to indicate motor conditions.
+    In the official documentation, these values are not given clear, parseable names.
+    However, nearly all of them correspond to values defined for the slightly different ``MGMSG_MOT_GET_USTATUSUPDATE`` command that do have clear names; we re-use those names here.
     """
 
     CWHARDLIMIT = 0x00000001
@@ -261,7 +262,7 @@ class StatusBits(IntFlag, boundary=STRICT):
     CONNECTED = 0x00000100
     HOMING = 0x00000200
     HOMED = 0x00000400
-    # Note that in UStatisBits, Interlock is 0x00010000, but here it is 0x00001000
+    # Note that in UStatusBits, Interlock is 0x00010000, but here it is 0x00001000
     INTERLOCK = 0x00001000
 
 
