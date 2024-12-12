@@ -246,12 +246,8 @@ class UStatus:
 
 @enum.unique
 class StatusBits(IntFlag, boundary=STRICT):
-    """Bitmask used in MGMSG_MOT_GET_USTATUSUPDATE to indicate motor
-    conditions. In the official documentation, all of these names have
-    P_MOT_SB prepended to them.
-
-    All spelling errors (e.g. "INITILIZING") are from the official
-    documentation.
+    """Bitmask used in MGMSG_MOT_GET_STATUSUPDATE to indicate motor
+    conditions. In the official documentation, these values are not given clear, parseable names. However, nearly all of them correspond to values defined for the slightly different ``MGMSG_MOT_GET_USTATUSUPDATE`` command that do have clear names; we re-use those names here.
     """
 
     CWHARDLIMIT = 0x00000001
@@ -271,7 +267,7 @@ class StatusBits(IntFlag, boundary=STRICT):
 
 @dataclass(frozen=True, kw_only=True)
 class Status:
-    """Dataclass-based representation of UStatusBits to enable more
+    """Dataclass-based representation of StatusBits to enable more
     legible output formats such as JSON.
     """
 
