@@ -261,7 +261,7 @@ class StatusBits(IntFlag, boundary=STRICT):
     CONNECTED = 0x00000100
     HOMING = 0x00000200
     HOMED = 0x00000400
-    INITILIZING = 0x00000800
+    # Note that in UStatisBits, Interlock is 0x00010000, but here it is 0x00001000
     INTERLOCK = 0x00001000
 
 
@@ -282,7 +282,6 @@ class Status:
     CONNECTED: bool = False
     HOMING: bool = False
     HOMED: bool = False
-    INITILIZING: bool = False
     INTERLOCK: bool = False
 
     @classmethod
@@ -297,7 +296,7 @@ class Status:
         bits = StatusBits(0)
         for field in dataclasses.fields(self):
             if getattr(self, field.name):
-                bits = bits | UStatusBits[field.name]
+                bits = bits | StatusBits[field.name]
         return bits
 
 
@@ -532,70 +531,6 @@ class AptMessageWithDataPosition(AptMessageWithData):
             self.source,
             self.chan_ident,
             self.position,
-        )
-
-
-@dataclass(frozen=True, kw_only=True)
-class AptMessageWithDataEncCount(AptMessageWithData):
-    data_length: ClassVar[int] = 14
-
-    # There are some more bytes at the end according to the documentation:
-    # (WORD - channel 2 identifier, LONG, LONG, LONG)
-    # However, it says that these are for future use and should be ignored.
-    message_struct: ClassVar[Struct] = Struct(
-        f"{AptMessageWithData.header_struct_str}{ATS.WORD}{ATS.LONG}{ATS.LONG}{ATS.DWORD}"
-    )
-
-    chan_ident: ChanIdent
-    position: int
-    enc_count: int
-    status: Status
-
-    @classmethod
-    def from_bytes(cls, raw: bytes) -> Self:
-        (
-            message_id,
-            data_length,
-            destination,
-            source,
-            chan_ident,
-            position,
-            enc_count,
-            status_flag,
-        ) = cls.message_struct.unpack(raw)
-
-        if message_id != cls.message_id:
-            raise ValueError(
-                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
-            )
-        if data_length != cls.data_length:
-            raise ValueError(
-                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
-            )
-        if destination & 0x80 != 0x80:
-            raise ValueError(
-                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
-            )
-
-        return cls(
-            destination=Address(destination & 0x7F),
-            source=Address(source),
-            chan_ident=ChanIdent(chan_ident),
-            position=position,
-            enc_count=enc_count,
-            status=Status.from_bits(StatusBits(status_flag)),
-        )
-
-    def to_bytes(self) -> bytes:
-        return self.message_struct.pack(
-            self.message_id,
-            self.data_length,
-            self.destination_serialization,
-            self.source,
-            self.chan_ident,
-            self.position,
-            self.enc_count,
-            self.status.to_bits(),
         )
 
 
@@ -908,8 +843,70 @@ class AptMessage_MGMSG_MOT_REQ_POSCOUNTER(AptMessageHeaderOnlyChanIdent):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithDataEncCount):
+class AptMessage_MGMSG_MOT_GET_STATUSUPDATE(AptMessageWithData):
     message_id = AptMessageId.MGMSG_MOT_GET_STATUSUPDATE
+
+    data_length: ClassVar[int] = 14
+
+    # In the official documentation, it says that the message is 34 bytes long
+    # With these additional fields reserved for future use:
+    # (WORD - channel 2 identifier, LONG, LONG, LONG)
+    # However, for the model of waveplate we are using, the message is only 20 bytes long
+    message_struct: ClassVar[Struct] = Struct(
+        f"{AptMessageWithData.header_struct_str}{ATS.WORD}{ATS.LONG}{ATS.LONG}{ATS.DWORD}"
+    )
+
+    chan_ident: ChanIdent
+    position: int
+    enc_count: int
+    status: Status
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        (
+            message_id,
+            data_length,
+            destination,
+            source,
+            chan_ident,
+            position,
+            enc_count,
+            status_flag,
+        ) = cls.message_struct.unpack(raw)
+
+        if message_id != cls.message_id:
+            raise ValueError(
+                f"Expected message ID {cls.message_id.value}, but received {message_id} instead. Full raw data was {raw!r}"
+            )
+        if data_length != cls.data_length:
+            raise ValueError(
+                f"Expected data packet length {cls.data_length}, but received {data_length} instead. Full raw data was {raw!r}"
+            )
+        if destination & 0x80 != 0x80:
+            raise ValueError(
+                f"Expected the destination's highest bit to be 1, indicating that a data packet follows, but it was 0. Full raw data was {raw!r}"
+            )
+
+        return cls(
+            destination=Address(destination & 0x7F),
+            source=Address(source),
+            chan_ident=ChanIdent(chan_ident),
+            position=position,
+            enc_count=enc_count,
+            status=Status.from_bits(StatusBits(status_flag)),
+        )
+
+    def to_bytes(self) -> bytes:
+        return self.message_struct.pack(
+            self.message_id,
+            self.data_length,
+            self.destination_serialization,
+            self.source,
+            self.chan_ident,
+            self.position,
+            self.enc_count,
+            self.status.to_bits(),
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
