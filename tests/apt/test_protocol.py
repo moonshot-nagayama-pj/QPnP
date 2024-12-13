@@ -15,6 +15,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_POSCOUNTER,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED,
@@ -24,6 +25,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_MOVE_STOP,
     AptMessage_MGMSG_MOT_MOVE_STOPPED,
     AptMessage_MGMSG_MOT_REQ_POSCOUNTER,
+    AptMessage_MGMSG_MOT_REQ_STATUSUPDATE,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_SET_EEPROMPARAMS,
     AptMessage_MGMSG_MOT_SET_POSCOUNTER,
@@ -39,6 +41,7 @@ from pnpq.apt.protocol import (
     JogDirection,
     Status,
     StopMode,
+    UStatus,
 )
 from pnpq.units import pnpq_ureg
 
@@ -290,6 +293,49 @@ def test_AptMessage_MGMSG_MOT_REQ_POSCOUNTER_to_bytes() -> None:
     assert msg.to_bytes() == b"\x11\x04\x01\x00\x50\x01"
 
 
+def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE.from_bytes(
+        bytes.fromhex("8104 0e00 81 22 0100 01000000 00000000 07000000")
+    )
+    assert msg.destination == 0x01
+    assert msg.message_id == 0x0481
+    assert msg.source == 0x22
+    assert msg.position == 1
+    assert msg.enc_count == 0
+    assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
+
+
+def test_AptMessage_MGMSG_MOT_GET_STATUSUPDATE_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
+        destination=Address.HOST_CONTROLLER,
+        source=Address.BAY_1,
+        chan_ident=ChanIdent.CHANNEL_1,
+        position=1,
+        enc_count=0,
+        status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+    )
+    assert msg.to_bytes() == bytes.fromhex(
+        "8104 0e00 81 22 0100 01000000 00000000 07000000"
+    )
+
+
+def test_AptMessage_MGMSG_MOT_REQ_STATUSUPDATE_from_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_STATUSUPDATE.from_bytes(b"\x80\x04\x01\x00\x50\x01")
+    assert msg.chan_ident == 0x01
+    assert msg.destination == 0x50
+    assert msg.message_id == 0x0480
+    assert msg.source == 0x01
+
+
+def test_AptMessage_MGMSG_MOT_REQ_STATUSUPDATE_to_bytes() -> None:
+    msg = AptMessage_MGMSG_MOT_REQ_STATUSUPDATE(
+        chan_ident=ChanIdent.CHANNEL_1,
+        destination=Address.GENERIC_USB,
+        source=Address.HOST_CONTROLLER,
+    )
+    assert msg.to_bytes() == b"\x80\x04\x01\x00\x50\x01"
+
+
 def test_AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE_from_bytes() -> None:
     msg = AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE.from_bytes(b"\x92\x04\x00\x00\x50\x01")
     assert msg.destination == 0x50
@@ -315,7 +361,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_from_bytes() -> None:
     assert msg.position == 16777216
     assert msg.velocity == 256
     assert msg.motor_current == -1 * pnpq_ureg.milliamp
-    assert msg.status == Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
+    assert msg.status == UStatus(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True)
 
 
 def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
@@ -326,7 +372,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_to_bytes() -> None:
         position=1,
         velocity=1,
         motor_current=(-1 * pnpq_ureg.milliamp),
-        status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+        status=UStatus(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
     )
     assert msg.to_bytes() == bytes.fromhex(
         "9104 0e00 81 22 0100 01000000 0100 FFFF 07000000"
@@ -342,7 +388,7 @@ def test_AptMessage_MGMSG_MOT_GET_USTATUSUPDATE_invalid_unit() -> None:
             position=1,
             velocity=1,
             motor_current=(-1 * pnpq_ureg.meter),
-            status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+            status=UStatus(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
         )
 
 
