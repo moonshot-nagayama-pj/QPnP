@@ -4,7 +4,11 @@ name: Publish Sphinx Documentation
 
 on:
   workflow_dispatch:
-  # TODO: We will run this on every push to main
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches:
+      - main
 
 jobs:
   publish-website:
