@@ -27,10 +27,10 @@ jobs:
       run: |
         uv python install
         uv sync
-        source .venv/bin/activate
 
-    - name: Build documentation
+    - name: Activate environment and build documentation
       run: |
+        source .venv/bin/activate
         sphinx-build -M html sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
 
     - name: Upload documentation files as artifact
