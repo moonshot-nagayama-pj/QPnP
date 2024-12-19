@@ -1,6 +1,6 @@
 # Automatically publish documentation to GitHub Pages
 
-name: Code Checks
+name: Publish Sphinx Documentation
 
 on:
   workflow_dispatch:
