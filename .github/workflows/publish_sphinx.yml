@@ -1,13 +1,13 @@
-# Automatically run semantic checks, linters, and unit tests
+# Automatically publish documentation to GitHub Pages
 
 name: Code Checks
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+  # TODO: We will run this on every push to main
 
 jobs:
-  check-codes:
+  publish-website:
     runs-on: ubuntu-24.04
 
     steps:
@@ -24,13 +24,14 @@ jobs:
     - name: Set up Python with uv
       run: uv python install
 
-    - name: Install other dependencies
+    - name: Build documentation
       run: |
-        ./bin/install-dependencies.bash
+        sphinx-build -M html sphinx/source/ sphinx/build/ --fail-on-warning --fresh-env --write-all
 
-    - name: Run check script
-      run: |
-        ./bin/check.bash
+    - name: Upload documentation files as artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: sphinx/build/html
 
     - name: Clean up uv cache
       run: uv cache prune --ci
