@@ -25,8 +25,10 @@ jobs:
         cache-dependency-glob: "uv.lock"
         version: "0.5.4"
 
-    - name: Set up Python with uv
-      run: uv python install
+    - name: Set up Python with uv and sync dependencies
+      run: |
+        uv python install
+        uv sync
 
     - name: Build documentation
       run: |
