@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  publish-website:
+  build-documentation:
     runs-on: ubuntu-24.04
 
     steps:
@@ -40,3 +40,20 @@ jobs:
 
     - name: Clean up uv cache
       run: uv cache prune --ci
+
+  deploy-documentation:
+    needs: build-documentation
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
