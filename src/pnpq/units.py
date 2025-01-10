@@ -10,6 +10,7 @@ thorlabs_context = pint.Context("thorlabs_context")
 
 # Custom unit definitions for devices
 pnpq_ureg.define("mpc320_step = [dimension_mpc320_step]")
+pnpq_ureg.define("k10cr1_step = [dimension_k10cr1_step]")
 
 
 # Transformation function for converting between mpc320_step and degrees
@@ -25,9 +26,24 @@ def mpc320_steps_to_degree(
     return Quantity(value.magnitude * 170 / 1370, ureg.degree)
 
 
+# Transformation function for converting between k10cr1_step and degrees
+def degree_to_k10cr1_steps(
+    ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
+) -> PlainQuantity[Any]:
+    return Quantity(round(value.magnitude * 136533 / 1), ureg.mpc320_step)
+
+
+def k10cr1_steps_to_degree(
+    ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
+) -> PlainQuantity[Any]:
+    return Quantity(value.magnitude * 1 / 136533, ureg.degree)
+
+
 thorlabs_context.add_transformation("degree", "mpc320_step", degree_to_mpc320_steps)
 thorlabs_context.add_transformation("mpc320_step", "degree", mpc320_steps_to_degree)
-pnpq_ureg.define("k10cr1_step = (1 / 136533) degree")
+
+thorlabs_context.add_transformation("degree", "k10cr1_step", degree_to_k10cr1_steps)
+thorlabs_context.add_transformation("k10cr1_step", "degree", k10cr1_steps_to_degree)
 
 # According to the protocol, velocity is expressed as a percentage of the maximum speed, ranging from 10% to 100%.
 # The maximum velocity is defined as 400 degrees per second, so we store velocity as a dimensionless proportion of this value.
