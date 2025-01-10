@@ -3,7 +3,7 @@ from pint import DimensionalityError
 
 from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import ChanIdent, JogDirection
-from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
+from pnpq.devices.polarization_controller_thorlabs_mpc import (
     PolarizationControllerThorlabsMPC320,
 )
 from pnpq.units import pnpq_ureg

@@ -11,7 +11,7 @@ from pnpq.apt.protocol import (
     UStatus,
     UStatusBits,
 )
-from pnpq.devices.polarization_controller_thorlabs_mpc320 import (
+from pnpq.devices.polarization_controller_thorlabs_mpc import (
     PolarizationControllerThorlabsMPC320,
 )
 from pnpq.units import pnpq_ureg
