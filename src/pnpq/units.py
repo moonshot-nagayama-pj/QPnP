@@ -30,7 +30,7 @@ def mpc320_steps_to_degree(
 def degree_to_k10cr1_steps(
     ureg: pint.UnitRegistry, value: PlainQuantity[Quantity], **_: Any
 ) -> PlainQuantity[Any]:
-    return Quantity(round(value.magnitude * 136533 / 1), ureg.mpc320_step)
+    return Quantity(round(value.magnitude * 136533 / 1), ureg.k10cr1_step)
 
 
 def k10cr1_steps_to_degree(

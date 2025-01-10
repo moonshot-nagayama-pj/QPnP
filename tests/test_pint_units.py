@@ -38,6 +38,40 @@ def test_angle_to_mpc320_step_conversion(
     assert isinstance(mpc320_step, int)
 
 
+@pytest.mark.parametrize(
+    "test_k10cr1_step, expected_angle",
+    [
+        (-136533, -1),
+        (0, 0),
+        (136533, 1),
+    ],
+)
+def test_k10cr1_step_to_angle_conversion(
+    test_k10cr1_step: float, expected_angle: float
+) -> None:
+
+    angle = (test_k10cr1_step * pnpq_ureg.k10cr1_step).to("degrees").magnitude
+    assert angle == pytest.approx(expected_angle)
+
+
+@pytest.mark.parametrize(
+    "test_angle, expected_k10cr1_step",
+    [
+        (-1, -136533),
+        (0, 0),
+        (1, 136533),
+        (1.000001, 136533),  # This will be able to test the actual rounding
+    ],
+)
+def test_angle_to_k10cr1_step_conversion(
+    test_angle: float, expected_k10cr1_step: int
+) -> None:
+
+    k10cr1_step = (test_angle * pnpq_ureg.degree).to("k10cr1_step").magnitude
+    assert k10cr1_step == expected_k10cr1_step
+    assert isinstance(k10cr1_step, int)
+
+
 # Test that [angle] / second quantities accurately convert into mpc320_velocity quantities
 @pytest.mark.parametrize(
     "angular_velocity, mpc320_velocity",
