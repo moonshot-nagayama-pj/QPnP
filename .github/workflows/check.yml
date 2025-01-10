@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Install uv and enable caching
       uses: astral-sh/setup-uv@v3
@@ -31,3 +31,6 @@ jobs:
     - name: Run check script
       run: |
         ./bin/check.bash
+
+    - name: Clean up uv cache
+      run: uv cache prune --ci
