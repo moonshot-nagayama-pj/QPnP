@@ -43,7 +43,7 @@ class PolarizationControllerParams(TypedDict):
 
 
 @dataclass(frozen=True, kw_only=True)
-class PolarizationControllerThorlabsMPC320:
+class PolarizationControllerThorlabsMPC:
     connection: AptConnection
 
     log = structlog.get_logger()
@@ -53,13 +53,7 @@ class PolarizationControllerThorlabsMPC320:
     tx_poller_thread_lock: threading.Lock = field(default_factory=threading.Lock)
 
     # Setup channels for the device
-    available_channels: frozenset[ChanIdent] = frozenset(
-        [
-            ChanIdent.CHANNEL_1,
-            ChanIdent.CHANNEL_2,
-            ChanIdent.CHANNEL_3,
-        ]
-    )
+    available_channels: frozenset[ChanIdent] = frozenset([])
 
     def __post_init__(self) -> None:
         # Start polling thread
@@ -271,3 +265,26 @@ class PolarizationControllerThorlabsMPC320:
                 jog_step_3=round(params["jog_step_3"].magnitude),
             )
         )
+
+
+@dataclass(frozen=True, kw_only=True)
+class PolarizationControllerThorlabsMPC320(PolarizationControllerThorlabsMPC):
+    # Setup channels for the device
+    available_channels: frozenset[ChanIdent] = frozenset(
+        [
+            ChanIdent.CHANNEL_1,
+            ChanIdent.CHANNEL_2,
+            ChanIdent.CHANNEL_3,
+        ]
+    )
+
+
+@dataclass(frozen=True, kw_only=True)
+class PolarizationControllerThorlabsMPC220(PolarizationControllerThorlabsMPC):
+    # Setup channels for the device
+    available_channels: frozenset[ChanIdent] = frozenset(
+        [
+            ChanIdent.CHANNEL_1,
+            ChanIdent.CHANNEL_2,
+        ]
+    )
