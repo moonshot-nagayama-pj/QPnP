@@ -5,11 +5,10 @@ from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import (
     Address,
     AptMessage,
-    AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     ChanIdent,
-    UStatus,
-    UStatusBits,
+    Status,
 )
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
 from pnpq.units import pnpq_ureg
@@ -34,12 +33,11 @@ def test_move_absolute() -> None:
             assert sent_message.chan_ident == ChanIdent(1)
 
             # A hypothetical reply message from the device
-            reply_message = AptMessage_MGMSG_MOT_GET_USTATUSUPDATE(
+            reply_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
                 chan_ident=sent_message.chan_ident,
                 position=sent_message.absolute_distance,
-                velocity=50,
-                motor_current=3 * pnpq_ureg.milliamp,
-                status=UStatus.from_bits(UStatusBits.ACTIVE),
+                enc_count=0,
+                status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
                 destination=Address.HOST_CONTROLLER,
                 source=Address.GENERIC_USB,
             )

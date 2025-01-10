@@ -10,6 +10,7 @@ from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
+    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
@@ -117,11 +118,13 @@ class WaveplateThorlabsK10CR1:
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_GET_USTATUSUPDATE)
+                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
                 and message.chan_ident == self._chan_ident
                 and message.position == absolute_distance
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
+                # and enc_count == 0
+                # and status == Status()
             ),
         )
         elapsed_time = time.perf_counter() - start_time
