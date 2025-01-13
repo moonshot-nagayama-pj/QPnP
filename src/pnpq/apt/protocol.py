@@ -984,10 +984,34 @@ class AptMessage_MGMSG_MOT_MOVE_ABSOLUTE(AptMessageWithData):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessageHeaderOnlyChanIdent):
-    """Note that the APT documentation indicates that this should be
-    followed by a full USTATUS data packet. In reality, for the
-    MPC320, no data packet follows."""
+class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
+    """
+    Note that the APT documentation indicates that this should be
+    followed by a full USTATUS data packet. So, two separate methods will be defined.
+    One for the full 20 byte message, and another for the 6 byte message.
+    """
+
+    pass  # pylint: disable=W0107
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED, AptMessageHeaderOnlyChanIdent
+):
+    """
+    For the MPC320, no data packet follows the main move completed message, so this message is used.
+    """
+
+    message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
+
+
+@dataclass(frozen=True, kw_only=True)
+class AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED, AptMessageWithDataMotorStatus
+):
+    """
+    For the K10CR1, a full USTATUS data packet follows the main move completed message, so this message is used.
+    """
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
 

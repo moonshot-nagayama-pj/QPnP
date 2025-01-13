@@ -14,7 +14,7 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
-    AptMessage_MGMSG_MOT_MOVE_COMPLETED,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
     AptMessage_MGMSG_MOT_MOVE_HOMED,
     AptMessage_MGMSG_MOT_MOVE_JOG,
@@ -154,7 +154,7 @@ class PolarizationControllerThorlabsMPC:
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED)
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES)
                 and message.chan_ident == chan_ident
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
