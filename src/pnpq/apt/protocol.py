@@ -991,27 +991,41 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
     One for the full 20 byte message, and another for the 6 byte message.
     """
 
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_COMPLETED":
+        length = len(raw)
+        if length == 6:
+            return AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES.from_bytes(raw)
+        if length == 20:
+            return AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES.from_bytes(raw)
+        raise ValueError(
+            f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
+        )
+        pass
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
-    AptMessage_MGMSG_MOT_MOVE_COMPLETED, AptMessageHeaderOnlyChanIdent
+    AptMessageHeaderOnlyChanIdent, AptMessage_MGMSG_MOT_MOVE_COMPLETED
 ):
     """
     For the MPC320, no data packet follows the main move completed message, so this message is used.
     """
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
+    data_length: ClassVar[int] = 0
 
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
-    AptMessage_MGMSG_MOT_MOVE_COMPLETED, AptMessageWithDataMotorStatus
+    AptMessageWithDataMotorStatus, AptMessage_MGMSG_MOT_MOVE_COMPLETED
 ):
     """
     For the K10CR1, a full USTATUS data packet follows the main move completed message, so this message is used.
     """
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
+    data_length: ClassVar[int] = 14
 
 
 @dataclass(frozen=True, kw_only=True)

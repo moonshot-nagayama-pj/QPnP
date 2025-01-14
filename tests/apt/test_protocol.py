@@ -4,6 +4,7 @@ from pint import DimensionalityError
 
 from pnpq.apt.protocol import (
     Address,
+    AptMessage,
     AptMessage_MGMSG_HW_DISCONNECT,
     AptMessage_MGMSG_HW_GET_INFO,
     AptMessage_MGMSG_HW_REQ_INFO,
@@ -18,6 +19,7 @@ from pnpq.apt.protocol import (
     AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_MOVE_HOME,
@@ -429,6 +431,27 @@ def test_AptMessage_MGMSG_MOT_MOVE_ABSOLUTE_to_bytes() -> None:
         absolute_distance=200000,
     )
     assert msg.to_bytes() == bytes.fromhex("5304 0600 A2 01 0100 400D0300")
+
+
+@pytest.mark.parametrize(
+    "message_bytes, expected_length, expected_type",
+    [
+        ("6404 0100 01 22", 6, AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES),
+        (
+            "6404 0e00 81 50 0100 68aaa001 0000 0000 30000080",
+            20,
+            AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
+        ),
+    ],
+)
+def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_from_bytes(
+    message_bytes: str, expected_length: int, expected_type: AptMessage
+) -> None:
+    msg = AptMessage_MGMSG_MOT_MOVE_COMPLETED.from_bytes(bytes.fromhex(message_bytes))
+    assert (
+        msg.data_length + 6 == expected_length
+    )  # 6 bytes for the header which is not included in data_length
+    assert isinstance(msg, expected_type)
 
 
 def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES_from_bytes() -> None:
