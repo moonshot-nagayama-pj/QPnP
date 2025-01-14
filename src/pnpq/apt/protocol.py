@@ -991,8 +991,6 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
     One for the full 20 byte message, and another for the 6 byte message.
     """
 
-    pass  # pylint: disable=W0107
-
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
