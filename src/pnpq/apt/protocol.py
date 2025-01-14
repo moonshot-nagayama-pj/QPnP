@@ -991,6 +991,8 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
     One for the full 20 byte message, and another for the 6 byte message.
     """
 
+    data_length: ClassVar[int]
+
     @classmethod
     def from_bytes(cls, raw: bytes) -> "AptMessage_MGMSG_MOT_MOVE_COMPLETED":
         length = len(raw)
@@ -1001,7 +1003,6 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED(AptMessage):
         raise ValueError(
             f"Expected data packet length 6 or 20, but received {length} instead. Full raw data was {raw!r}"
         )
-        pass
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -1015,6 +1016,10 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED_6_BYTES(
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
     data_length: ClassVar[int] = 0
 
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        return super().from_bytes(raw)
+
 
 @dataclass(frozen=True, kw_only=True)
 class AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
@@ -1026,6 +1031,10 @@ class AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
 
     message_id: ClassVar[AptMessageId] = AptMessageId.MGMSG_MOT_MOVE_COMPLETED
     data_length: ClassVar[int] = 14
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> Self:
+        return super().from_bytes(raw)
 
 
 @dataclass(frozen=True, kw_only=True)

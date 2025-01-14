@@ -445,7 +445,7 @@ def test_AptMessage_MGMSG_MOT_MOVE_ABSOLUTE_to_bytes() -> None:
     ],
 )
 def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_from_bytes(
-    message_bytes: str, expected_length: int, expected_type: AptMessage
+    message_bytes: str, expected_length: int, expected_type: type[AptMessage]
 ) -> None:
     msg = AptMessage_MGMSG_MOT_MOVE_COMPLETED.from_bytes(bytes.fromhex(message_bytes))
     assert (
