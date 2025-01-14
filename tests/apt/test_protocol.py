@@ -472,7 +472,7 @@ def test_AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES_to_bytes() -> None:
         source=Address.GENERIC_USB,
         position=0x01A0AA68,
         velocity=0x00,
-        motor_current=pnpq_ureg.milliamp * 0,
+        motor_current=0 * pnpq_ureg.milliamp,
         status=UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True),
     )
     assert msg.to_bytes() == bytes.fromhex(
