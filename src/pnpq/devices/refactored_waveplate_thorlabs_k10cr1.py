@@ -9,11 +9,8 @@ from ..apt.connection import AptConnection
 from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
-    AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
-    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
-    AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
@@ -94,9 +91,10 @@ class WaveplateThorlabsK10CR1:
                     # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(1)
 
-    def set_channel_enabled(self, chan_ident: ChanIdent, enabled: bool) -> None:
+    def set_channel_enabled(self, enabled: bool) -> None:
+
         if enabled:
-            chan_bitmask = chan_ident
+            chan_bitmask = self._chan_ident
         else:
             chan_bitmask = ChanIdent(0)
 
@@ -110,10 +108,14 @@ class WaveplateThorlabsK10CR1:
         )
 
     def move_absolute(self, position: Quantity) -> None:
+        """Moves the waveplate to a certain angle.
+
+        :param position: The angle to move to.
+        """
 
         absolute_distance = round(position.to("k10cr1_step").magnitude)
         # absolute_degree = round(position.to("degree").magnitude)
-        self.set_channel_enabled(self._chan_ident, True)
+        self.set_channel_enabled(True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
         self.connection.send_message_expect_reply(
@@ -133,4 +135,5 @@ class WaveplateThorlabsK10CR1:
         )
         elapsed_time = time.perf_counter() - start_time
         self.log.debug("move_absolute command finished", elapsed_time=elapsed_time)
-        self.set_channel_enabled(self._chan_ident, False)
+
+        self.set_channel_enabled(False)

@@ -5,10 +5,10 @@ from pnpq.apt.connection import AptConnection
 from pnpq.apt.protocol import (
     Address,
     AptMessage,
-    AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     ChanIdent,
-    Status,
+    UStatus,
 )
 from pnpq.devices.refactored_waveplate_thorlabs_k10cr1 import WaveplateThorlabsK10CR1
 from pnpq.units import pnpq_ureg
@@ -33,13 +33,14 @@ def test_move_absolute() -> None:
             assert sent_message.chan_ident == ChanIdent(1)
 
             # A hypothetical reply message from the device
-            reply_message = AptMessage_MGMSG_MOT_GET_STATUSUPDATE(
+            reply_message = AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES(
                 chan_ident=sent_message.chan_ident,
                 position=sent_message.absolute_distance,
-                enc_count=0,
-                status=Status(CWHARDLIMIT=True, CCWHARDLIMIT=True, CWSOFTLIMIT=True),
+                velocity=0,
                 destination=Address.HOST_CONTROLLER,
                 source=Address.GENERIC_USB,
+                motor_current=0 * pnpq_ureg.milliamp,
+                status=UStatus(INMOTIONCCW=True, INMOTIONCW=True, ENABLED=True),
             )
 
             assert match_reply_callback(reply_message)
@@ -52,5 +53,5 @@ def test_move_absolute() -> None:
 
     controller.move_absolute(10 * pnpq_ureg.k10cr1_step)
 
-    # Two calls for enabling and disabling the channel, one call for moving the motor
-    assert connection.send_message_expect_reply.call_count == 3
+    # One call for moving the motor. Enabling and disabling the channel doesn't use an expect reply in K10CR1
+    assert connection.send_message_expect_reply.call_count == 1
