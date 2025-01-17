@@ -17,6 +17,7 @@ from .protocol import (
     Address,
     AptMessage,
     AptMessage_MGMSG_HW_REQ_INFO,
+    AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
     AptMessageForStreamParsing,
     AptMessageId,
 )
@@ -112,6 +113,15 @@ class AptConnection:
                 timeout=self.timeout,
             ),
         )
+
+        self.send_message_no_reply(
+            AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+        time.sleep(0.1)
+        self.connection.flush()
 
         # Remove anything that might be left over in the buffer from
         # previous runs

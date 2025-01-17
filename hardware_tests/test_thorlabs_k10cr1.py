@@ -12,4 +12,4 @@ def device_fixture() -> WaveplateThorlabsK10CR1:
 
 
 def test_move_absolute(device: WaveplateThorlabsK10CR1) -> None:
-    device.move_absolute(180 * pnpq_ureg.degree)
+    device.move_absolute(0 * pnpq_ureg.degree)

@@ -9,11 +9,13 @@ from ..apt.connection import AptConnection
 from ..apt.protocol import (
     Address,
     AptMessage_MGMSG_HW_START_UPDATEMSGS,
+    AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
     AptMessage_MGMSG_MOD_SET_CHANENABLESTATE,
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_STATUSUPDATE,
     AptMessage_MGMSG_MOT_GET_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
+    AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
     AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     ChanIdent,
     EnableState,
@@ -42,13 +44,16 @@ class WaveplateThorlabsK10CR1:
             "tx_poller_thread",
             threading.Thread(target=self.tx_poll, daemon=True),
         )
+
         # self.tx_poller_thread.start()
 
         # Send autoupdate
-        self.connection.send_message_no_reply(AptMessage_MGMSG_HW_START_UPDATEMSGS(
-            destination=Address.GENERIC_USB,
-            source=Address.HOST_CONTROLLER,
-        ))
+        self.connection.send_message_no_reply(
+            AptMessage_MGMSG_HW_START_UPDATEMSGS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
 
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
@@ -95,7 +100,7 @@ class WaveplateThorlabsK10CR1:
         else:
             chan_bitmask = ChanIdent(0)
 
-        self.connection.send_message_no_reply( # K10CR1 doesn't reply after setting chan enable
+        self.connection.send_message_no_reply(  # K10CR1 doesn't reply after setting chan enable
             AptMessage_MGMSG_MOD_SET_CHANENABLESTATE(
                 chan_ident=chan_bitmask,
                 enable_state=EnableState.CHANNEL_ENABLED,
@@ -119,13 +124,11 @@ class WaveplateThorlabsK10CR1:
                 source=Address.HOST_CONTROLLER,
             ),
             lambda message: (
-                isinstance(message, AptMessage_MGMSG_MOT_GET_STATUSUPDATE)
+                isinstance(message, AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES)
                 and message.chan_ident == self._chan_ident
                 and message.position == absolute_distance
                 and message.destination == Address.HOST_CONTROLLER
                 and message.source == Address.GENERIC_USB
-                # and enc_count == 0
-                # and status == Status()
             ),
         )
         elapsed_time = time.perf_counter() - start_time
