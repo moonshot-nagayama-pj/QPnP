@@ -13,7 +13,6 @@ from ..apt.protocol import (
     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE,
     AptMessage_MGMSG_MOT_MOVE_ABSOLUTE,
     AptMessage_MGMSG_MOT_MOVE_COMPLETED_20_BYTES,
-    AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE,
     ChanIdent,
     EnableState,
 )
@@ -42,7 +41,7 @@ class WaveplateThorlabsK10CR1:
             threading.Thread(target=self.tx_poll, daemon=True),
         )
 
-        # self.tx_poller_thread.start()
+        self.tx_poller_thread.start()
 
         # Send autoupdate
         self.connection.send_message_no_reply(
@@ -56,14 +55,6 @@ class WaveplateThorlabsK10CR1:
     def tx_poll(self) -> None:
         with self.tx_poller_thread_lock:
             while True:
-                for chan in self.available_channels:
-                    self.connection.send_message_unordered(
-                        AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
-                            chan_ident=chan,
-                            destination=Address.GENERIC_USB,
-                            source=Address.HOST_CONTROLLER,
-                        )
-                    )
                 self.connection.send_message_unordered(
                     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
                         destination=Address.GENERIC_USB,
@@ -89,7 +80,7 @@ class WaveplateThorlabsK10CR1:
                     # probably send slightly less frequently than once
                     # a second, so, if we start having issues, we
                     # should decrease this interval.
-                    self.connection.tx_ordered_sender_awaiting_reply.wait(1)
+                    self.connection.tx_ordered_sender_awaiting_reply.wait(0.9)
 
     def set_channel_enabled(self, enabled: bool) -> None:
         if enabled:
