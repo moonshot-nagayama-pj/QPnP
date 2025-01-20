@@ -15,7 +15,6 @@ from pnpq.units import pnpq_ureg
 
 
 def test_move_absolute() -> None:
-
     connection = create_autospec(AptConnection)
 
     def mock_send_message_expect_reply(
