@@ -92,7 +92,6 @@ class WaveplateThorlabsK10CR1:
                     self.connection.tx_ordered_sender_awaiting_reply.wait(1)
 
     def set_channel_enabled(self, enabled: bool) -> None:
-
         if enabled:
             chan_bitmask = self._chan_ident
         else:
