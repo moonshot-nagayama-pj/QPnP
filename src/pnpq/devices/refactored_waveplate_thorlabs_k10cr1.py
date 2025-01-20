@@ -113,7 +113,6 @@ class WaveplateThorlabsK10CR1:
         """
 
         absolute_distance = round(position.to("k10cr1_step").magnitude)
-        # absolute_degree = round(position.to("degree").magnitude)
         self.set_channel_enabled(True)
         self.log.debug("Sending move_absolute command...")
         start_time = time.perf_counter()
