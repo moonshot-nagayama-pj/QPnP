@@ -103,12 +103,12 @@ class PolarizationControllerThorlabsMPC:
                     # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(1)
 
-    def get_status_all(self) -> list[AptMessage_MGMSG_MOT_GET_USTATUSUPDATE]:
+    def get_status_all(self) -> tuple[AptMessage_MGMSG_MOT_GET_USTATUSUPDATE, ...]:
         all_status = []
         for channel in self.available_channels:
             status = self.get_status(channel)
             all_status.append(status)
-        return all_status
+        return tuple(all_status)
 
     def get_status(
         self, chan_ident: ChanIdent
