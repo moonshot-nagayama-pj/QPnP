@@ -17,6 +17,7 @@ from .protocol import (
     Address,
     AptMessage,
     AptMessage_MGMSG_HW_REQ_INFO,
+    AptMessage_MGMSG_HW_START_UPDATEMSGS,
     AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
     AptMessageForStreamParsing,
     AptMessageId,
@@ -71,6 +72,8 @@ class AptConnection:
     )
 
     log = structlog.get_logger()
+
+    stop_event = threading.Event()
 
     # Required inputs are defined below.
 
@@ -172,16 +175,38 @@ class AptConnection:
             )
         )
 
-        self.log.debug("Finishing connection post-init...")()
+        self.log.debug("Finishing connection post-init...")
 
     def close(self) -> None:
+
+        self.send_message_no_reply(
+            AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+
+        time.sleep(1)
+
+
+        self.stop_event.set()
+        self.log.debug("I HAVE SET STOPPED EVENT TO SET!")
+        time.sleep(1)
+        self.rx_dispatcher_thread.join()
+        self.log.debug("I HAVE JOINED ONE OF THE THREADS!")
+        self.tx_ordered_sender_thread.join()
+        self.log.debug("I HAVE JOINED ALL THE THREADS!")
+        time.sleep(1)
+
         self.connection.flush()
         self.connection.close()
+        self.log.debug("II HAVE CLOSED BUFFER!")
+        exit()
 
 
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
-            while True:
+            while not self.stop_event.is_set():
                 partial_message: None | AptMessageForStreamParsing = None
                 full_message: Optional[AptMessage] = None
                 try:
@@ -238,7 +263,7 @@ class AptConnection:
     def tx_ordered_send(self) -> None:
         # TODO wrap in exception handler
         with self.tx_ordered_sender_thread_lock:
-            while True:
+            while not self.stop_event.is_set():
                 message, match_reply, reply_queue = self.tx_ordered_sender_queue.get()
                 self.log.debug(
                     event=Event.TX_MESSAGE_ORDERED,
