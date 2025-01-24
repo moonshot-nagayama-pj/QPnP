@@ -77,6 +77,25 @@ class AptConnection:
     serial_number: str
 
     def __post_init__(self) -> None:
+        pass
+
+    # TODO from a multi-threading point of view, it might be much
+    # easier to assume that, for the lifetime of a program, a
+    # connection is held by a single object that cannot be
+    # closed. However, we should still probably implement a context
+    # manager for this object.
+    #
+    # The tricky part is managing the threads; they will all need to
+    # be paused before closing the serial connection... and then how
+    # do we clean up the child threads if this object gets cleaned up?
+
+    # def __enter__(self) -> None:
+    #     self.open()
+
+    # def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+    #     self.close()
+
+    def open(self) -> None:
         self.log.debug("Starting connection post-init...")
 
         # These devices tend to take a few seconds to start up, and
@@ -153,30 +172,12 @@ class AptConnection:
             )
         )
 
-        self.log.debug("Finishing connection post-init...")
+        self.log.debug("Finishing connection post-init...")()
 
-    # TODO from a multi-threading point of view, it might be much
-    # easier to assume that, for the lifetime of a program, a
-    # connection is held by a single object that cannot be
-    # closed. However, we should still probably implement a context
-    # manager for this object.
-    #
-    # The tricky part is managing the threads; they will all need to
-    # be paused before closing the serial connection... and then how
-    # do we clean up the child threads if this object gets cleaned up?
+    def close(self) -> None:
+        self.connection.flush()
+        self.connection.close()
 
-    # def __enter__(self) -> None:
-    #     self.open()
-
-    # def __exit__(self, exc_type, exc_value, exc_tb) -> None:
-    #     self.close()
-
-    # def open(self) -> None:
-    #     self.connection.open()
-
-    # def close(self) -> None:
-    #     self.connection.flush()
-    #     self.connection.close()
 
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
