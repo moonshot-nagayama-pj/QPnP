@@ -11,7 +11,7 @@ from pnpq.units import pnpq_ureg
 
 @pytest.fixture(name="device", scope="module")
 def device_fixture() -> PolarizationControllerThorlabsMPC320:
-    connection = AptConnection(serial_number="38454784")
+    connection = AptConnection(serial_number="38454684")
     return PolarizationControllerThorlabsMPC320(connection=connection)
 
 
@@ -144,6 +144,30 @@ def test_set_params(device: PolarizationControllerThorlabsMPC320) -> None:
     params = device.get_params()
     params["home_position"] = 0 * pnpq_ureg.degree
     device.set_params(**params)
+
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+
+def test_get_status(device: PolarizationControllerThorlabsMPC320) -> None:
+    # Assumes that home is 0
+    device.home(ChanIdent.CHANNEL_1)
+    device.home(ChanIdent.CHANNEL_2)
+    device.home(ChanIdent.CHANNEL_3)
+
+    messages = device.get_status_all()
+    for message in messages:
+        assert message.position == 0
+
+    move_steps = (100 * pnpq_ureg.degree).to("mpc320_steps")
+    device.move_absolute(ChanIdent.CHANNEL_1, move_steps)
+    device.move_absolute(ChanIdent.CHANNEL_2, move_steps)
+    device.move_absolute(ChanIdent.CHANNEL_3, move_steps)
+
+    messages = device.get_status_all()
+    for message in messages:
+        assert message.position == move_steps.magnitude
 
     device.home(ChanIdent.CHANNEL_1)
     device.home(ChanIdent.CHANNEL_2)
