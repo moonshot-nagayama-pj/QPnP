@@ -65,12 +65,10 @@ class PolarizationControllerThorlabsMPC:
         self.tx_poller_thread.start()
 
     # Polling thread for sending status update requests
-
     def tx_poll(self) -> None:
         with self.tx_poller_thread_lock:
             while not self.connection.stop_event.is_set():
                 for chan in self.available_channels:
-
                     self.connection.send_message_unordered(
                         AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
                             chan_ident=chan,
@@ -78,7 +76,6 @@ class PolarizationControllerThorlabsMPC:
                             source=Address.HOST_CONTROLLER,
                         )
                     )
-
                 self.connection.send_message_unordered(
                     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
                         destination=Address.GENERIC_USB,
@@ -96,10 +93,8 @@ class PolarizationControllerThorlabsMPC:
                 # update by setting the
                 # tx_ordered_sender_awaiting_reply event.
                 if self.connection.tx_ordered_sender_awaiting_reply.is_set():
-
                     time.sleep(0.2)
                 else:
-
                     # The documentation for
                     # MGMSG_MOT_ACK_USTATUSUPDATE suggests that it
                     # should be sent at least once a second. This will

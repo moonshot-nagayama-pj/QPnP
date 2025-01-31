@@ -178,15 +178,12 @@ class AptConnection:
 
     def close(self) -> None:
 
-        self.send_message_no_reply(
+        self.send_message_unordered(
             AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
                 source=Address.HOST_CONTROLLER,
             )
         )
-
-        time.sleep(1)
-
         self.stop_event.set()
 
         self.tx_ordered_sender_queue.shutdown()
@@ -202,22 +199,24 @@ class AptConnection:
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
             while not self.stop_event.is_set():
-
                 partial_message: None | AptMessageForStreamParsing = None
                 full_message: Optional[AptMessage] = None
+
                 try:
                     message_bytes = self.connection.read(6)
                 # Serial bus not connected error
-                except Exception:  # pylint: disable=W0718
+                except Exception as e:  # pylint: disable=W0718
+                    self.log.debug(
+                        event="Shutting down rx dispatcher. Received expected error.",
+                        exc_info=e,
+                    )
                     break
                 try:
-
                     partial_message = AptMessageForStreamParsing.from_bytes(
                         message_bytes
                     )
                     message_id = partial_message.message_id
                     if partial_message.data_length != 0:
-
                         message_bytes = message_bytes + self.connection.read(
                             partial_message.data_length
                         )
@@ -233,7 +232,6 @@ class AptConnection:
                             message=full_message,
                         )
                         with self.rx_dispatcher_subscribers_lock:
-
                             for queue in self.rx_dispatcher_subscribers.values():
                                 queue.put(full_message)
                     else:
