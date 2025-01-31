@@ -64,11 +64,20 @@ class PolarizationControllerThorlabsMPC:
         )
         self.tx_poller_thread.start()
 
+    def close(self) -> None:
+        pass
+        # self.connection.close()
     # Polling thread for sending status update requests
+
     def tx_poll(self) -> None:
         with self.tx_poller_thread_lock:
-            while True:
+            while not self.connection.stop_event.is_set():
+
+                # self.connection.log.debug("MY NAME IS MPC320. I AM STILL HERE!")
+
                 for chan in self.available_channels:
+                    # self.connection.log.debug("MPC320 SENDING REQ USTATUSUPDATE TO: " + str(chan))
+
                     self.connection.send_message_unordered(
                         AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(
                             chan_ident=chan,
@@ -76,6 +85,8 @@ class PolarizationControllerThorlabsMPC:
                             source=Address.HOST_CONTROLLER,
                         )
                     )
+                # self.connection.log.debug("MPC320 SENDING ACK USTATUSUPDATE TO DEVICE")
+
                 self.connection.send_message_unordered(
                     AptMessage_MGMSG_MOT_ACK_USTATUSUPDATE(
                         destination=Address.GENERIC_USB,
@@ -93,8 +104,13 @@ class PolarizationControllerThorlabsMPC:
                 # update by setting the
                 # tx_ordered_sender_awaiting_reply event.
                 if self.connection.tx_ordered_sender_awaiting_reply.is_set():
+                    # self.connection.log.debug("self.connection.tx_ordered_sender_awaiting_reply.is_set() == True")
+
                     time.sleep(0.2)
                 else:
+                    # self.connection.log.debug("self.connection.tx_ordered_sender_awaiting_reply.is_set() == False")
+                    # self.connection.log.debug("Waiting 1s on tx_ordered_sender_awaiting_reply")
+
                     # The documentation for
                     # MGMSG_MOT_ACK_USTATUSUPDATE suggests that it
                     # should be sent at least once a second. This will
@@ -102,6 +118,8 @@ class PolarizationControllerThorlabsMPC:
                     # a second, so, if we start having issues, we
                     # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(1)
+                    # self.connection.log.debug("Okay, finished waiting.")
+
 
     def home(self, chan_ident: ChanIdent) -> None:
         self.set_channel_enabled(chan_ident, True)

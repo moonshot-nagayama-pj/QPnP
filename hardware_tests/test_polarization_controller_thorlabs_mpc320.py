@@ -24,20 +24,15 @@ def test_connection() -> None:
     connection = AptConnection(serial_number="38454784")
     connection.open()
 
-    connection.log.debug("I HAVE OPENED CONNECTOIN!")
-    time.sleep(2)
+    time.sleep(1)
 
     device = PolarizationControllerThorlabsMPC320(connection=connection)
-    connection.log.debug("I HAVE CREATED CONECTION!")
-    time.sleep(2)
+    time.sleep(1)
 
-    device.move_absolute(ChanIdent.CHANNEL_1, 10 * pnpq_ureg.degree)
-    connection.log.debug("I HAVE FINISHED EXECUTING!")
-    time.sleep(2)
+    device.move_absolute(ChanIdent.CHANNEL_1, 20 * pnpq_ureg.degree)
+    time.sleep(1)
 
-    connection.log.debug("I AM GOING TO CLOSE THE THREAD!")
     connection.close()
-    time.sleep(2)
 
 def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
 

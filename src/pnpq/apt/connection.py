@@ -2,7 +2,10 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from queue import SimpleQueue
+# Change to Queue
+# Use Queue.shutdown or something to stop it
+# So we can stop the thread
+from queue import Queue, ShutDown
 from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
@@ -41,7 +44,7 @@ class AptConnection:
 
     rx_dispatcher_thread: threading.Thread = field(init=False)
     rx_dispatcher_thread_lock: threading.Lock = field(default_factory=threading.Lock)
-    rx_dispatcher_subscribers: dict[int, SimpleQueue[AptMessage]] = field(
+    rx_dispatcher_subscribers: dict[int, Queue[AptMessage]] = field(
         default_factory=dict
     )
     rx_dispatcher_subscribers_lock: threading.Lock = field(
@@ -53,7 +56,7 @@ class AptConnection:
     tx_ordered_sender_awaiting_reply: threading.Event = field(
         default_factory=threading.Event
     )
-    tx_ordered_sender_queue: SimpleQueue[
+    tx_ordered_sender_queue: Queue[
         Tuple[
             AptMessage,
             None
@@ -63,9 +66,9 @@ class AptConnection:
                 ],
                 bool,
             ],
-            None | SimpleQueue[AptMessage],
+            None | Queue[AptMessage],
         ]
-    ] = field(default_factory=SimpleQueue)
+    ] = field(default_factory=Queue)
     tx_ordered_sender_thread: threading.Thread = field(init=False)
     tx_ordered_sender_thread_lock: threading.Lock = field(
         default_factory=threading.Lock
@@ -188,37 +191,43 @@ class AptConnection:
 
         time.sleep(1)
 
-
         self.stop_event.set()
-        self.log.debug("I HAVE SET STOPPED EVENT TO SET!")
-        time.sleep(1)
-        self.rx_dispatcher_thread.join()
-        self.log.debug("I HAVE JOINED ONE OF THE THREADS!")
+
+        self.tx_ordered_sender_queue.shutdown()
+
         self.tx_ordered_sender_thread.join()
-        self.log.debug("I HAVE JOINED ALL THE THREADS!")
-        time.sleep(1)
+        self.rx_dispatcher_thread.join()
 
         self.connection.flush()
         self.connection.close()
-        self.log.debug("II HAVE CLOSED BUFFER!")
-        exit()
+
+        self.log.debug("Successfully closed the APTConnection.")
 
 
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
             while not self.stop_event.is_set():
+                # self.log.debug("RX DISATCHER THREAD RUNNING")
                 partial_message: None | AptMessageForStreamParsing = None
                 full_message: Optional[AptMessage] = None
                 try:
-                    message_bytes = self.connection.read(6)
+                    # self.log.debug("RX: ATTEMPTING TO READ")
+                    if self.connection.in_waiting > 0:
+                        message_bytes = self.connection.read(6)
+                    else:
+                        continue
+                    # self.log.debug("RX: SUCCESSFULLY READ")
                     partial_message = AptMessageForStreamParsing.from_bytes(
                         message_bytes
                     )
                     message_id = partial_message.message_id
                     if partial_message.data_length != 0:
+                        # self.log.debug("RX: READING MORE")
+
                         message_bytes = message_bytes + self.connection.read(
                             partial_message.data_length
                         )
+                        # self.log.debug("RX: SUCESSFULLY READ MOER!")
                     if partial_message.message_id in AptMessageId:
                         message_id = AptMessageId(partial_message.message_id)
                         full_message = getattr(
@@ -230,6 +239,7 @@ class AptConnection:
                             message=full_message,
                         )
                         with self.rx_dispatcher_subscribers_lock:
+
                             for queue in self.rx_dispatcher_subscribers.values():
                                 queue.put(full_message)
                     else:
@@ -249,9 +259,9 @@ class AptConnection:
                     )
 
     @contextmanager
-    def rx_subscribe(self) -> Iterator[SimpleQueue[AptMessage]]:
+    def rx_subscribe(self) -> Iterator[Queue[AptMessage]]:
         thread_id = threading.get_ident()
-        queue: SimpleQueue[AptMessage] = SimpleQueue()
+        queue: Queue[AptMessage] = Queue()
         with self.rx_dispatcher_subscribers_lock:
             self.rx_dispatcher_subscribers[thread_id] = queue
         try:
@@ -264,7 +274,10 @@ class AptConnection:
         # TODO wrap in exception handler
         with self.tx_ordered_sender_thread_lock:
             while not self.stop_event.is_set():
-                message, match_reply, reply_queue = self.tx_ordered_sender_queue.get()
+                try:
+                    message, match_reply, reply_queue = self.tx_ordered_sender_queue.get()
+                except ShutDown as e:
+                    break
                 self.log.debug(
                     event=Event.TX_MESSAGE_ORDERED,
                     message=message,
@@ -358,6 +371,6 @@ class AptConnection:
         # one per thread, rather than creating a new queue for every
         # request. However, considering that we send very few
         # commands, this is probably fine.
-        reply_queue: SimpleQueue[AptMessage] = SimpleQueue()
+        reply_queue: Queue[AptMessage] = Queue()
         self.tx_ordered_sender_queue.put((message, match_reply, reply_queue))
         return reply_queue.get()
