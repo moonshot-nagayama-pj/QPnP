@@ -111,6 +111,12 @@ class ChanIdent(IntFlag, boundary=STRICT):
     CHANNEL_3 = 0x04
     CHANNEL_4 = 0x08
 
+    @classmethod
+    def from_linear(cls, linear: int) -> "ChanIdent":
+        if linear < 1 or linear > 4:
+            raise ValueError("Channel identifier must be between 1 and 4.")
+        return cls(1 << (linear - 1))
+
 
 @enum.unique
 class EnableState(int, Enum):

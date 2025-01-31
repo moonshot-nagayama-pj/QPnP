@@ -708,3 +708,14 @@ def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_to_bytes() -> None:
         message_id_to_save=AptMessageId.MGMSG_HW_GET_INFO,
     )
     assert msg.to_bytes() == bytes.fromhex("B904 0400 D0 01 0100 0600")
+
+
+def test_ChanIdent_init() -> None:
+    chan_1 = ChanIdent.from_linear(1)
+    assert chan_1 == ChanIdent.CHANNEL_1
+    chan_2 = ChanIdent.from_linear(2)
+    assert chan_2 == ChanIdent.CHANNEL_2
+    chan_3 = ChanIdent.from_linear(3)
+    assert chan_3 == ChanIdent.CHANNEL_3
+    chan_4 = ChanIdent.from_linear(4)
+    assert chan_4 == ChanIdent.CHANNEL_4
