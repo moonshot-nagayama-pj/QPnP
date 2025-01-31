@@ -67,7 +67,7 @@ class PolarizationControllerThorlabsMPC:
     # Polling thread for sending status update requests
     def tx_poll(self) -> None:
         with self.tx_poller_thread_lock:
-            while True:
+            while not self.connection.stop_event.is_set():
                 for chan in self.available_channels:
                     self.connection.send_message_unordered(
                         AptMessage_MGMSG_MOT_REQ_USTATUSUPDATE(

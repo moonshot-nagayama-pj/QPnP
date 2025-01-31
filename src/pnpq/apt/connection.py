@@ -2,7 +2,7 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from queue import SimpleQueue
+from queue import Queue, ShutDown
 from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
@@ -40,7 +40,7 @@ class AptConnection:
 
     rx_dispatcher_thread: threading.Thread = field(init=False)
     rx_dispatcher_thread_lock: threading.Lock = field(default_factory=threading.Lock)
-    rx_dispatcher_subscribers: dict[int, SimpleQueue[AptMessage]] = field(
+    rx_dispatcher_subscribers: dict[int, Queue[AptMessage]] = field(
         default_factory=dict
     )
     rx_dispatcher_subscribers_lock: threading.Lock = field(
@@ -52,7 +52,7 @@ class AptConnection:
     tx_ordered_sender_awaiting_reply: threading.Event = field(
         default_factory=threading.Event
     )
-    tx_ordered_sender_queue: SimpleQueue[
+    tx_ordered_sender_queue: Queue[
         Tuple[
             AptMessage,
             None
@@ -62,9 +62,9 @@ class AptConnection:
                 ],
                 bool,
             ],
-            None | SimpleQueue[AptMessage],
+            None | Queue[AptMessage],
         ]
-    ] = field(default_factory=SimpleQueue)
+    ] = field(default_factory=Queue)
     tx_ordered_sender_thread: threading.Thread = field(init=False)
     tx_ordered_sender_thread_lock: threading.Lock = field(
         default_factory=threading.Lock
@@ -72,11 +72,32 @@ class AptConnection:
 
     log = structlog.get_logger()
 
+    stop_event = threading.Event()
+
     # Required inputs are defined below.
 
     serial_number: str
 
     def __post_init__(self) -> None:
+        pass
+
+    # TODO from a multi-threading point of view, it might be much
+    # easier to assume that, for the lifetime of a program, a
+    # connection is held by a single object that cannot be
+    # closed. However, we should still probably implement a context
+    # manager for this object.
+    #
+    # The tricky part is managing the threads; they will all need to
+    # be paused before closing the serial connection... and then how
+    # do we clean up the child threads if this object gets cleaned up?
+
+    # def __enter__(self) -> None:
+    #     self.open()
+
+    # def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+    #     self.close()
+
+    def open(self) -> None:
         self.log.debug("Starting connection post-init...")
 
         # These devices tend to take a few seconds to start up, and
@@ -155,36 +176,42 @@ class AptConnection:
 
         self.log.debug("Finishing connection post-init...")
 
-    # TODO from a multi-threading point of view, it might be much
-    # easier to assume that, for the lifetime of a program, a
-    # connection is held by a single object that cannot be
-    # closed. However, we should still probably implement a context
-    # manager for this object.
-    #
-    # The tricky part is managing the threads; they will all need to
-    # be paused before closing the serial connection... and then how
-    # do we clean up the child threads if this object gets cleaned up?
+    def close(self) -> None:
 
-    # def __enter__(self) -> None:
-    #     self.open()
+        self.send_message_unordered(
+            AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
+                destination=Address.GENERIC_USB,
+                source=Address.HOST_CONTROLLER,
+            )
+        )
+        self.stop_event.set()
 
-    # def __exit__(self, exc_type, exc_value, exc_tb) -> None:
-    #     self.close()
+        self.tx_ordered_sender_queue.shutdown()
+        self.tx_ordered_sender_thread.join()
 
-    # def open(self) -> None:
-    #     self.connection.open()
+        self.connection.flush()
+        self.connection.close()
 
-    # def close(self) -> None:
-    #     self.connection.flush()
-    #     self.connection.close()
+        self.rx_dispatcher_thread.join()
+
+        self.log.debug("Successfully closed the APTConnection.")
 
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
-            while True:
+            while not self.stop_event.is_set():
                 partial_message: None | AptMessageForStreamParsing = None
                 full_message: Optional[AptMessage] = None
+
                 try:
                     message_bytes = self.connection.read(6)
+                # Serial bus not connected error
+                except Exception as e:  # pylint: disable=W0718
+                    self.log.debug(
+                        event="Shutting down rx dispatcher. Received expected error.",
+                        exc_info=e,
+                    )
+                    break
+                try:
                     partial_message = AptMessageForStreamParsing.from_bytes(
                         message_bytes
                     )
@@ -193,6 +220,7 @@ class AptConnection:
                         message_bytes = message_bytes + self.connection.read(
                             partial_message.data_length
                         )
+
                     if partial_message.message_id in AptMessageId:
                         message_id = AptMessageId(partial_message.message_id)
                         full_message = getattr(
@@ -223,9 +251,9 @@ class AptConnection:
                     )
 
     @contextmanager
-    def rx_subscribe(self) -> Iterator[SimpleQueue[AptMessage]]:
+    def rx_subscribe(self) -> Iterator[Queue[AptMessage]]:
         thread_id = threading.get_ident()
-        queue: SimpleQueue[AptMessage] = SimpleQueue()
+        queue: Queue[AptMessage] = Queue()
         with self.rx_dispatcher_subscribers_lock:
             self.rx_dispatcher_subscribers[thread_id] = queue
         try:
@@ -237,8 +265,13 @@ class AptConnection:
     def tx_ordered_send(self) -> None:
         # TODO wrap in exception handler
         with self.tx_ordered_sender_thread_lock:
-            while True:
-                message, match_reply, reply_queue = self.tx_ordered_sender_queue.get()
+            while not self.stop_event.is_set():
+                try:
+                    message, match_reply, reply_queue = (
+                        self.tx_ordered_sender_queue.get()
+                    )
+                except ShutDown as _:
+                    break
                 self.log.debug(
                     event=Event.TX_MESSAGE_ORDERED,
                     message=message,
@@ -332,6 +365,6 @@ class AptConnection:
         # one per thread, rather than creating a new queue for every
         # request. However, considering that we send very few
         # commands, this is probably fine.
-        reply_queue: SimpleQueue[AptMessage] = SimpleQueue()
+        reply_queue: Queue[AptMessage] = Queue()
         self.tx_ordered_sender_queue.put((message, match_reply, reply_queue))
         return reply_queue.get()

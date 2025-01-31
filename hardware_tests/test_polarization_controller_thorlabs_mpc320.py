@@ -1,3 +1,5 @@
+import time
+
 import pytest
 from pint import DimensionalityError
 
@@ -19,7 +21,23 @@ def device_fixture() -> PolarizationControllerThorlabsMPC320:
 #    device.check_status()
 
 
+def test_connection() -> None:
+    connection = AptConnection(serial_number="38454784")
+    connection.open()
+
+    time.sleep(1)
+
+    device = PolarizationControllerThorlabsMPC320(connection=connection)
+    time.sleep(1)
+
+    device.move_absolute(ChanIdent.CHANNEL_1, 20 * pnpq_ureg.degree)
+    time.sleep(1)
+
+    connection.close()
+
+
 def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
+
     device.identify(ChanIdent.CHANNEL_1)
 
     device.home(ChanIdent.CHANNEL_1)
