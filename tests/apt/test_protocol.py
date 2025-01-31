@@ -710,12 +710,15 @@ def test_AptMessage_MGMSG_MOT_SET_EEPROMPARAMS_to_bytes() -> None:
     assert msg.to_bytes() == bytes.fromhex("B904 0400 D0 01 0100 0600")
 
 
-def test_ChanIdent_init() -> None:
-    chan_1 = ChanIdent.from_linear(1)
-    assert chan_1 == ChanIdent.CHANNEL_1
-    chan_2 = ChanIdent.from_linear(2)
-    assert chan_2 == ChanIdent.CHANNEL_2
-    chan_3 = ChanIdent.from_linear(3)
-    assert chan_3 == ChanIdent.CHANNEL_3
-    chan_4 = ChanIdent.from_linear(4)
-    assert chan_4 == ChanIdent.CHANNEL_4
+@pytest.mark.parametrize(
+    "chan_ident_int, expected_channel",
+    [
+        (1, ChanIdent.CHANNEL_1),
+        (2, ChanIdent.CHANNEL_2),
+        (3, ChanIdent.CHANNEL_3),
+        (4, ChanIdent.CHANNEL_4),
+    ],
+)
+def test_ChanIdent_init(chan_ident_int: int, expected_channel: ChanIdent) -> None:
+    chan_ident = ChanIdent.from_linear(chan_ident_int)
+    assert chan_ident == expected_channel
