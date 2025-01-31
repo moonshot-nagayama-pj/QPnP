@@ -194,39 +194,38 @@ class AptConnection:
         self.stop_event.set()
 
         self.tx_ordered_sender_queue.shutdown()
-
         self.tx_ordered_sender_thread.join()
-        self.rx_dispatcher_thread.join()
 
         self.connection.flush()
         self.connection.close()
+
+        self.rx_dispatcher_thread.join()
 
         self.log.debug("Successfully closed the APTConnection.")
 
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
             while not self.stop_event.is_set():
-                # self.log.debug("RX DISATCHER THREAD RUNNING")
+
                 partial_message: None | AptMessageForStreamParsing = None
                 full_message: Optional[AptMessage] = None
                 try:
-                    # self.log.debug("RX: ATTEMPTING TO READ")
-                    if self.connection.in_waiting > 0:
-                        message_bytes = self.connection.read(6)
-                    else:
-                        continue
-                    # self.log.debug("RX: SUCCESSFULLY READ")
+                    message_bytes = self.connection.read(6)
+                except Exception: # Serial bus not connected error
+                    break
+                try:
+
                     partial_message = AptMessageForStreamParsing.from_bytes(
                         message_bytes
                     )
                     message_id = partial_message.message_id
                     if partial_message.data_length != 0:
-                        # self.log.debug("RX: READING MORE")
+
 
                         message_bytes = message_bytes + self.connection.read(
                             partial_message.data_length
                         )
-                        # self.log.debug("RX: SUCESSFULLY READ MOER!")
+
                     if partial_message.message_id in AptMessageId:
                         message_id = AptMessageId(partial_message.message_id)
                         full_message = getattr(
