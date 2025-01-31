@@ -211,7 +211,8 @@ class AptConnection:
                 full_message: Optional[AptMessage] = None
                 try:
                     message_bytes = self.connection.read(6)
-                except Exception: # Serial bus not connected error
+                # Serial bus not connected error
+                except Exception:  # pylint: disable=W0718
                     break
                 try:
 
@@ -220,7 +221,6 @@ class AptConnection:
                     )
                     message_id = partial_message.message_id
                     if partial_message.data_length != 0:
-
 
                         message_bytes = message_bytes + self.connection.read(
                             partial_message.data_length

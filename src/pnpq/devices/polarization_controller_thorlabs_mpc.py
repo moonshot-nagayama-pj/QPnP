@@ -64,8 +64,6 @@ class PolarizationControllerThorlabsMPC:
         )
         self.tx_poller_thread.start()
 
-
-
     # Polling thread for sending status update requests
 
     def tx_poll(self) -> None:
