@@ -2,10 +2,6 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-
-# Change to Queue
-# Use Queue.shutdown or something to stop it
-# So we can stop the thread
 from queue import Queue, ShutDown
 from typing import Callable, Iterator, Optional, Tuple
 
