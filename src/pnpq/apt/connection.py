@@ -2,6 +2,7 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+
 # Change to Queue
 # Use Queue.shutdown or something to stop it
 # So we can stop the thread
@@ -20,7 +21,6 @@ from .protocol import (
     Address,
     AptMessage,
     AptMessage_MGMSG_HW_REQ_INFO,
-    AptMessage_MGMSG_HW_START_UPDATEMSGS,
     AptMessage_MGMSG_HW_STOP_UPDATEMSGS,
     AptMessageForStreamParsing,
     AptMessageId,
@@ -203,7 +203,6 @@ class AptConnection:
 
         self.log.debug("Successfully closed the APTConnection.")
 
-
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
             while not self.stop_event.is_set():
@@ -275,8 +274,10 @@ class AptConnection:
         with self.tx_ordered_sender_thread_lock:
             while not self.stop_event.is_set():
                 try:
-                    message, match_reply, reply_queue = self.tx_ordered_sender_queue.get()
-                except ShutDown as e:
+                    message, match_reply, reply_queue = (
+                        self.tx_ordered_sender_queue.get()
+                    )
+                except ShutDown as _:
                     break
                 self.log.debug(
                     event=Event.TX_MESSAGE_ORDERED,

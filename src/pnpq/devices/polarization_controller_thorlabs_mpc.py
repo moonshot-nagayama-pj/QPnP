@@ -67,6 +67,7 @@ class PolarizationControllerThorlabsMPC:
     def close(self) -> None:
         pass
         # self.connection.close()
+
     # Polling thread for sending status update requests
 
     def tx_poll(self) -> None:
@@ -119,7 +120,6 @@ class PolarizationControllerThorlabsMPC:
                     # should decrease this interval.
                     self.connection.tx_ordered_sender_awaiting_reply.wait(1)
                     # self.connection.log.debug("Okay, finished waiting.")
-
 
     def home(self, chan_ident: ChanIdent) -> None:
         self.set_channel_enabled(chan_ident, True)

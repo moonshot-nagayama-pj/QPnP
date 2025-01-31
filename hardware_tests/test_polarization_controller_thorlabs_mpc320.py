@@ -1,4 +1,5 @@
 import time
+
 import pytest
 from pint import DimensionalityError
 
@@ -9,11 +10,10 @@ from pnpq.devices.polarization_controller_thorlabs_mpc import (
 )
 from pnpq.units import pnpq_ureg
 
-
 # @pytest.fixture(name="device", scope="module")
 # def device_fixture() -> PolarizationControllerThorlabsMPC320:
 #     connection = AptConnection(serial_number="38454784")
-    # return PolarizationControllerThorlabsMPC320(connection=connection)
+# return PolarizationControllerThorlabsMPC320(connection=connection)
 
 
 # def test_check_status(device: PolarizationControllerThorlabsMPC320) -> None:
@@ -33,6 +33,7 @@ def test_connection() -> None:
     time.sleep(1)
 
     connection.close()
+
 
 def test_move_absolute(device: PolarizationControllerThorlabsMPC320) -> None:
 
