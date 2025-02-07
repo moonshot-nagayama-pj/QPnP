@@ -91,11 +91,11 @@ class AptConnection:
     # be paused before closing the serial connection... and then how
     # do we clean up the child threads if this object gets cleaned up?
 
-    # def __enter__(self) -> None:
-    #     self.open()
+    def __enter__(self) -> None:
+        self.open()
 
-    # def __exit__(self, exc_type, exc_value, exc_tb) -> None:
-    #     self.close()
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+        self.close()
 
     def open(self) -> None:
         self.log.debug("Starting connection post-init...")
@@ -177,7 +177,6 @@ class AptConnection:
         self.log.debug("Finishing connection post-init...")
 
     def close(self) -> None:
-
         self.send_message_unordered(
             AptMessage_MGMSG_HW_STOP_UPDATEMSGS(
                 destination=Address.GENERIC_USB,
@@ -195,6 +194,9 @@ class AptConnection:
         self.rx_dispatcher_thread.join()
 
         self.log.debug("Successfully closed the APTConnection.")
+
+    def is_closed(self) -> bool:
+        return self.stop_event.is_set()
 
     def rx_dispatch(self) -> None:
         with self.rx_dispatcher_thread_lock:
