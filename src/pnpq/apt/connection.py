@@ -1,5 +1,6 @@
 import threading
 import time
+import traceback
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from queue import Queue, ShutDown
@@ -91,10 +92,16 @@ class AptConnection:
     # be paused before closing the serial connection... and then how
     # do we clean up the child threads if this object gets cleaned up?
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> "AptConnection":
         self.open()
+        return self
 
-    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: Optional[type],
+        exc_value: Optional[BaseException],
+        exc_tb: Optional[traceback.TracebackException],
+    ) -> None:
         self.close()
 
     def open(self) -> None:
@@ -105,6 +112,9 @@ class AptConnection:
         # automatically on computer boot. For safety, wait here before
         # continuing initialization.
         time.sleep(1)
+
+        # Reset the stop event in case this object is being re-used.
+        self.stop_event.clear()
 
         port_found = False
         port = None
@@ -120,6 +130,7 @@ class AptConnection:
         # Initializing the connection by passing a port to the Serial
         # constructor immediately opens the connection. It is not
         # necessary to call open() separately.
+
         object.__setattr__(
             self,
             "connection",
