@@ -2,7 +2,6 @@ import time
 from typing import Generator
 
 import pytest
-import structlog
 from pint import DimensionalityError
 
 from pnpq.apt.connection import AptConnection
