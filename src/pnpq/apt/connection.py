@@ -1,9 +1,9 @@
 import threading
 import time
-import traceback
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from queue import Queue, ShutDown
+from types import TracebackType
 from typing import Callable, Iterator, Optional, Tuple
 
 import serial.tools.list_ports
@@ -11,6 +11,7 @@ import structlog
 from serial import Serial
 
 import pnpq.apt
+from pnpq.errors import InvalidStateException
 
 from ..devices.utils import timeout
 from ..events import Event
@@ -73,24 +74,10 @@ class AptConnection:
 
     log = structlog.get_logger()
 
-    stop_event = threading.Event()
+    stop_event: threading.Event = field(default_factory=threading.Event)
 
     # Required inputs are defined below.
-
     serial_number: str
-
-    def __post_init__(self) -> None:
-        pass
-
-    # TODO from a multi-threading point of view, it might be much
-    # easier to assume that, for the lifetime of a program, a
-    # connection is held by a single object that cannot be
-    # closed. However, we should still probably implement a context
-    # manager for this object.
-    #
-    # The tricky part is managing the threads; they will all need to
-    # be paused before closing the serial connection... and then how
-    # do we clean up the child threads if this object gets cleaned up?
 
     def __enter__(self) -> "AptConnection":
         self.open()
@@ -105,16 +92,20 @@ class AptConnection:
         self.close()
 
     def open(self) -> None:
-        self.log.debug("Starting connection post-init...")
+        self.log.debug("Opening connection...")
+
+        # Throw error if connection is attempted to be re-opened after being closed once
+        if self.stop_event.is_set():
+            self.log.error(
+                "Connection that was already closed was tried to be re-opened."
+            )
+            raise InvalidStateException
 
         # These devices tend to take a few seconds to start up, and
         # this library tends to be used as part of services that start
         # automatically on computer boot. For safety, wait here before
         # continuing initialization.
         time.sleep(1)
-
-        # Reset the stop event in case this object is being re-used.
-        self.stop_event.clear()
 
         port_found = False
         port = None
@@ -185,7 +176,7 @@ class AptConnection:
             )
         )
 
-        self.log.debug("Finishing connection post-init...")
+        self.log.debug("Finished opening connection...")
 
     def close(self) -> None:
         self.send_message_unordered(
@@ -230,9 +221,17 @@ class AptConnection:
                     )
                     message_id = partial_message.message_id
                     if partial_message.data_length != 0:
-                        message_bytes = message_bytes + self.connection.read(
-                            partial_message.data_length
-                        )
+                        try:
+                            message_bytes = message_bytes + self.connection.read(
+                                partial_message.data_length
+                            )
+                        # Serial bus not connected error
+                        except Exception as e:  # pylint: disable=W0718
+                            self.log.debug(
+                                event="Shutting down rx dispatcher. Received expected error.",
+                                exc_info=e,
+                            )
+                            break
 
                     if partial_message.message_id in AptMessageId:
                         message_id = AptMessageId(partial_message.message_id)
@@ -283,7 +282,7 @@ class AptConnection:
                     message, match_reply, reply_queue = (
                         self.tx_ordered_sender_queue.get()
                     )
-                except ShutDown as _:
+                except ShutDown:
                     break
                 self.log.debug(
                     event=Event.TX_MESSAGE_ORDERED,

@@ -2,6 +2,7 @@ import time
 from typing import Generator
 
 import pytest
+import structlog
 from pint import DimensionalityError
 
 from pnpq.apt.connection import AptConnection
@@ -12,14 +13,11 @@ from pnpq.devices.polarization_controller_thorlabs_mpc import (
 from pnpq.units import pnpq_ureg
 
 
-@pytest.fixture(name="device", scope="module")
+@pytest.fixture(name="device", scope="function")
 def device_fixture() -> Generator[PolarizationControllerThorlabsMPC320]:
+
     with AptConnection(serial_number="38454784") as connection:
         yield PolarizationControllerThorlabsMPC320(connection=connection)
-
-
-# def test_check_status(device: PolarizationControllerThorlabsMPC320) -> None:
-#    device.check_status()
 
 
 def test_connection() -> None:
