@@ -98,9 +98,9 @@ class AptConnection:
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_value: Optional[BaseException],
-        exc_tb: Optional[traceback.TracebackException],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         self.close()
 
