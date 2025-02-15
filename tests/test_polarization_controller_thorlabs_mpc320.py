@@ -21,6 +21,8 @@ def test_move_absolute() -> None:
 
     connection = create_autospec(AptConnection)
 
+    connection.stop_event = Mock()
+
     def mock_send_message_expect_reply(
         sent_message: AptMessage,
         match_reply_callback: Callable[
